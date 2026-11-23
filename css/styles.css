@@ -68,3 +68,19 @@ body{padding:0 0 0 188px}
 .top-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-width:0}
 .net{white-space:nowrap}
 @media(max-width:420px){.top{gap:6px;padding-left:12px;padding-right:12px}.top-actions{gap:6px}.net{font-size:11px;padding:4px 8px}.top-actions .btn{padding:0 10px}}
+
+
+/* Prevent wide dashboard/report content from expanding the mobile layout viewport. */
+html,body{width:100%;max-width:100%;overflow-x:clip}
+body{min-width:320px}
+#app,main,main>div,.page-h,.stats,.row2,.panel,.tw{min-width:0;max-width:100%}
+.stats>* , .row2>*{min-width:0}
+.tw{width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+.tb{max-width:100%}
+@media(max-width:899px){
+  body{padding-left:0!important;padding-right:0!important}
+  main{width:100%;padding:14px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .row2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .nav{left:0;right:0;top:auto;width:auto;max-width:100%;flex-direction:row}
+}
