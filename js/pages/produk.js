@@ -1,4 +1,5 @@
-import { all, put, del, uid, audit } from '../services/db.js';
+import { all, uid } from '../services/db.js';
+import { saveProduct, removeProduct, isProd } from '../services/sync.js';
 import { rp, toInt } from '../utils/money.js';
 import { $, esc, toast, icon } from '../utils/dom.js';
 
@@ -17,19 +18,19 @@ export async function render(root) {
       <label>Nama produk<input name="name" class="input" required maxlength="80" value="${esc(p.name)}"></label>
       <div class="row2"><label>SKU / kode<input name="sku" class="input" maxlength="40" value="${esc(p.sku)}"></label><label>Kategori<input name="category" class="input" maxlength="40" value="${esc(p.category)}"></label></div>
       <div class="row2"><label>Harga modal (Rp)<input name="cost" class="input" inputmode="numeric" value="${p.cost || 0}"></label><label>Harga jual (Rp)<input name="price" class="input" inputmode="numeric" required value="${p.price ?? ''}"></label></div>
-      <div class="row2"><label>Satuan<input name="unit" class="input" maxlength="20" value="${esc(p.unit)}"></label><label>Stok (kosong = tidak dilacak)<input name="stock" class="input" inputmode="numeric" value="${p.stock ?? ''}"></label></div>
+      <div class="row2"><label>Satuan<input name="unit" class="input" maxlength="20" value="${esc(p.unit)}"></label><label>Stok (kosong = tidak dilacak)<input name="stock" class="input" inputmode="numeric" value="${p.stock ?? ''}" ${!isNew && isProd() ? 'readonly title="Ubah stok lewat menu Inventaris"' : ''}></label></div>
       <label class="chk"><input type="checkbox" name="active" ${p.active ? 'checked' : ''}>Aktif dijual</label>
       <div class="rc-a"><button class="btn" value="cancel" formnovalidate>Batal</button><button class="btn primary" value="ok">Simpan</button></div></form>`;
     dlg.showModal();
-    $('#f').onsubmit = async e => { if (e.submitter?.value === 'cancel') return;
+    $('#f').onsubmit = async e => { if (e.submitter?.value === 'cancel') return; try {
       const v = Object.fromEntries(new FormData(e.target));
-      await put('products', { ...p, name: v.name.trim(), sku: v.sku.trim(), category: v.category.trim(), unit: v.unit.trim() || 'pcs',
-        cost: toInt(v.cost), price: toInt(v.price), stock: v.stock.trim() === '' ? null : toInt(v.stock), active: 'active' in v });
-      await audit(isNew ? 'tambah_produk' : 'ubah_produk', p.id, v.name.trim()); toast('Produk tersimpan'); draw(); }; };
+      await saveProduct({ ...p, name: v.name.trim(), sku: v.sku.trim(), category: v.category.trim(), unit: v.unit.trim() || 'pcs',
+        cost: toInt(v.cost), price: toInt(v.price), stock: v.stock.trim() === '' ? null : toInt(v.stock), active: 'active' in v }, isNew);
+      toast('Produk tersimpan'); draw(); } catch (er) { toast('Gagal menyimpan: ' + er.message); } }; };
   root.addEventListener('click', async e => { const b = e.target.closest('button'); if (!b) return;
     if (b.id === 'add') return form();
     const p = ps.find(x => x.id === b.closest('[data-id]')?.dataset.id); if (!p) return;
     if (b.dataset.a === 'edit') form(p);
-    else if (b.dataset.a === 'del' && confirm(`Hapus "${p.name}"? Riwayat transaksi lama tidak berubah.`)) { await del('products', p.id); await audit('hapus_produk', p.id, p.name); draw(); } });
+    else if (b.dataset.a === 'del' && confirm(`Hapus "${p.name}"? Riwayat transaksi lama tidak berubah.`)) { try { await removeProduct(p); draw(); } catch (er) { toast('Gagal menghapus: ' + er.message); } } });
   draw();
 }

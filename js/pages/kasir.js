@@ -1,9 +1,10 @@
 import { all, saveSale, uid } from '../services/db.js';
 import { CONFIG } from '../config.js';
+import { isProd, settings, bizName } from '../services/sync.js';
 import { rp, toInt, calc } from '../utils/money.js';
 import { $, esc, toast, icon, share } from '../utils/dom.js';
 
-export const receiptText = t => [CONFIG.APP_NAME + (t.demo ? ' (DEMO)' : ''), t.no, new Date(t.at).toLocaleString('id-ID'),
+export const receiptText = t => [bizName() + (t.demo ? ' (DEMO)' : ''), t.no, new Date(t.at).toLocaleString('id-ID'),
   t.status !== 'selesai' ? 'STATUS: ' + t.status.toUpperCase() : null, '',
   ...t.items.map(i => `${i.name}\n  ${i.qty} x ${rp(i.price)} = ${rp(i.qty * i.price)}`), '',
   `Subtotal  ${rp(t.subtotal)}`, t.discount ? `Diskon    -${rp(t.discount)}` : null, t.tax ? `Pajak     ${rp(t.tax)}` : null, t.fee ? `Layanan   ${rp(t.fee)}` : null,
@@ -34,7 +35,7 @@ export async function render(root) {
   <button class="cartbar" id="cartbar"></button>`;
 
   const totals = () => { const sub = [...cart.values()].reduce((a, l) => a + l.p.price * l.qty, 0), d = Math.min(disc, sub), base = sub - d;
-    const tax = Math.round(base * CONFIG.taxPct / 100), fee = cart.size ? CONFIG.serviceFee : 0; return { sub, d, tax, fee, total: base + tax + fee }; };
+    const S = settings(), tax = Math.round(base * S.taxPct / 100), fee = cart.size ? S.fee : 0; return { sub, d, tax, fee, total: base + tax + fee }; };
   const drawGrid = () => { const f = prods.filter(p => (cat === 'Semua' || p.category === cat) && (!q || (p.name + ' ' + (p.sku || '')).toLowerCase().includes(q)));
     $('#grid').innerHTML = f.length ? f.map(p => `<button class="pcard" data-id="${esc(p.id)}"><b>${esc(p.name)}</b><span>${rp(p.price)} / ${esc(p.unit || 'pcs')}</span>${p.stock != null ? `<small class="${p.stock <= CONFIG.lowStock ? 'warn' : ''}">Stok ${p.stock}</small>` : ''}</button>`).join('')
       : '<p class="empty">Produk tidak ditemukan. Tambahkan produk di menu Produk.</p>'; };
@@ -46,7 +47,7 @@ export async function render(root) {
       <div class="qty"><button data-a="dec" aria-label="Kurangi">−</button><input data-a="qty" inputmode="numeric" value="${l.qty}" aria-label="Jumlah"><button data-a="inc" aria-label="Tambah">+</button></div>
       <button class="x" data-a="rm" aria-label="Hapus">${icon('x')}</button><b class="sub">${rp(l.p.price * l.qty)}</b></div>`).join('') : '<p class="empty">Keranjang kosong. Pilih produk untuk memulai.</p>';
     const row = (l, v, c = '') => `<div class="${c}"><span>${l}</span><span>${v}</span></div>`;
-    $('#sum').innerHTML = row('Subtotal', rp(t.sub)) + (t.d ? row('Diskon', '-' + rp(t.d)) : '') + (t.tax ? row('Pajak ' + CONFIG.taxPct + '%', rp(t.tax)) : '') + (t.fee ? row('Biaya layanan', rp(t.fee)) : '') + row('Total', rp(t.total), 'tot');
+    $('#sum').innerHTML = row('Subtotal', rp(t.sub)) + (t.d ? row('Diskon', '-' + rp(t.d)) : '') + (t.tax ? row('Pajak ' + settings().taxPct + '%', rp(t.tax)) : '') + (t.fee ? row('Biaya layanan', rp(t.fee)) : '') + row('Total', rp(t.total), 'tot');
     $('#cx').textContent = expr ? expr.replace(/\d+/g, m => (+m).toLocaleString('id-ID')) : 'Ketik nominal uang diterima';
     $('#cv').textContent = rp(recv);
     const chg = $('#chg'); chg.className = 'chg'; chg.textContent = '';
@@ -96,12 +97,12 @@ export async function render(root) {
     const trx = { id: draft, no: `WRG-${ymd}-${draft.slice(0, 6).toUpperCase()}`, at: Date.now(),
       items: [...cart.values()].map(l => ({ productId: l.p.id, name: l.p.name, price: l.p.price, cost: l.p.cost, qty: l.qty, unit: l.p.unit })),
       subtotal: t.sub, discount: t.d, tax: t.tax, fee: t.fee, total: t.total, method, paid: recv, change: recv - t.total,
-      note: $('#note').value.trim(), status: 'selesai', demo: CONFIG.MODE === 'demo', synced: false };
+      note: $('#note').value.trim(), status: 'selesai', demo: !isProd(), synced: false, sync: isProd() ? 'menunggu' : 'lokal' };
     try {
       await saveSale(trx);
       cart.clear(); disc = 0; expr = ''; draft = uid(); $('#disc').value = 0; $('#note').value = '';
-      await load(); drawChips(); drawGrid(); $('#cart').classList.remove('open'); dispatchEvent(new Event('wk:changed'));
-      dlg.innerHTML = `<h3>Pembayaran berhasil</h3><pre class="rc">${esc(receiptText(trx))}</pre><small>Tersimpan di perangkat ini. Belum disinkronkan ke server.</small>
+      await load(); drawChips(); drawGrid(); $('#cart').classList.remove('open'); dispatchEvent(new Event('wk:changed')); dispatchEvent(new Event('wk:sale'));
+      dlg.innerHTML = `<h3>Pembayaran berhasil</h3><pre class="rc">${esc(receiptText(trx))}</pre><small>${isProd() ? 'Tersimpan di perangkat, menunggu sinkronisasi ke server.' : 'Mode demo: tidak dikirim ke server.'}</small>
         <div class="rc-a"><button class="btn" id="rp">Cetak</button><button class="btn" id="rs">Bagikan</button><button class="btn primary" id="rx">Transaksi baru</button></div>`;
       dlg.showModal(); $('#rp').onclick = () => print(); $('#rs').onclick = () => share(receiptText(trx), trx.no); $('#rx').onclick = () => dlg.close();
     } catch (err) { console.error(err); toast('Gagal menyimpan transaksi. Coba lagi.'); }
