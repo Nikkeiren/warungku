@@ -58,3 +58,8 @@ body{padding:0 0 0 188px}
 .cartbar,.cart-h .btn{display:none}.stats{grid-template-columns:repeat(4,1fr)}.toast{bottom:32px}}
 @media print{body>*:not(dialog){display:none!important}dialog{position:static;box-shadow:none}.rc-a,small{display:none}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.auth{max-width:380px;margin:8vh auto 0}.auth h1{font-size:32px;color:var(--pri);letter-spacing:-.04em}
+.nav a{min-width:0;font-size:11px}
+.tw{overflow-x:auto}.tb{width:100%;border-collapse:collapse;font-size:14px}.tb th,.tb td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}.tb th:first-child,.tb td:first-child{text-align:left}.tb th{color:var(--mut);font-weight:600}
+@media(max-width:899px){.nav{overflow-x:auto}.nav a{flex:1 0 72px}}
+@media print{body.rpt>*:not(main){display:none!important}body.rpt>main{display:block!important;padding:0}body.rpt{padding:0}.noprint{display:none!important}}
