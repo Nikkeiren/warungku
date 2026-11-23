@@ -18,7 +18,7 @@ const bump = (P, items, sign, tx) => items.forEach(i => { const r=P.get(i.produc
 // Idempoten: id transaksi yang sama tidak pernah dicatat dua kali. Transaksi + stok disimpan atomik.
 export async function saveSale(t) {
   const tx = (await open()).transaction(['products', 'transactions', 'audit'], 'readwrite'), T = tx.objectStore('transactions');
-  T.get(t.id).onsuccess = e => { if (e.target.result) return; T.put(t); bump(tx.objectStore('products'), t.items, -1); };
+  T.get(t.id).onsuccess = e => { if (e.target.result) return; T.put(t); bump(tx.objectStore('products'), t.items, -1, tx); };
   return done(tx);
 }
 export async function voidSale(id, reason) {
@@ -26,6 +26,6 @@ export async function voidSale(id, reason) {
   T.get(id).onsuccess = e => { const t = e.target.result; if (!t || t.status !== 'selesai') return;
     T.put({ ...t, status: 'batal', voidReason: reason, voidAt: Date.now(), synced: false });
     tx.objectStore('audit').put({ id: uid(), at: Date.now(), action: 'batal_transaksi', ref: id, detail: reason });
-    bump(tx.objectStore('products'), t.items, 1); };
+    bump(tx.objectStore('products'), t.items, 1, tx); };
   return done(tx);
 }
