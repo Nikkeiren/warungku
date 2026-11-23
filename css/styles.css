@@ -63,3 +63,8 @@ body{padding:0 0 0 188px}
 .tw{overflow-x:auto}.tb{width:100%;border-collapse:collapse;font-size:14px}.tb th,.tb td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}.tb th:first-child,.tb td:first-child{text-align:left}.tb th{color:var(--mut);font-weight:600}
 @media(max-width:899px){.nav{overflow-x:auto}.nav a{flex:1 0 72px}}
 @media print{body.rpt>*:not(main){display:none!important}body.rpt>main{display:block!important;padding:0}body.rpt{padding:0}.noprint{display:none!important}}
+
+/* Header actions: keep network status grouped with the account button. */
+.top-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-width:0}
+.net{white-space:nowrap}
+@media(max-width:420px){.top{gap:6px;padding-left:12px;padding-right:12px}.top-actions{gap:6px}.net{font-size:11px;padding:4px 8px}.top-actions .btn{padding:0 10px}}
