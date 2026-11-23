@@ -9,8 +9,8 @@ const range = (k, a, b) => { const s = new Date(); s.setHours(0, 0, 0, 0); const
   if (k === 'today') return [z, z + DAY]; if (k === 'yday') return [z - DAY, z]; if (k === '7') return [z - 6 * DAY, z + DAY]; if (k === '30') return [z - 29 * DAY, z + DAY];
   return [a ? +new Date(a + 'T00:00') : z, (b ? +new Date(b + 'T00:00') : z) + DAY]; };
 export async function render(root) {
-  root.innerHTML = `<div class="page-h"><h1>Ringkasan</h1></div><div class="row2"><label>Periode<select id="k" class="input"><option value="today">Hari ini</option><option value="yday">Kemarin</option><option value="7">7 hari terakhir</option><option value="30">30 hari terakhir</option><option value="c">Rentang tanggal khusus</option></select></label>
-    <div id="cr" class="row2" hidden><label>Dari<input id="a" type="date" class="input"></label><label>Sampai<input id="b" type="date" class="input"></label></div></div><div id="out"></div>`;
+  root.innerHTML = `<div class="page-h"><h1>Ringkasan</h1></div><label>Periode<select id="k" class="input"><option value="today">Hari ini</option><option value="yday">Kemarin</option><option value="7">7 hari terakhir</option><option value="30">30 hari terakhir</option><option value="c">Rentang tanggal khusus</option></select></label>
+    <div id="cr" class="row2" hidden><label>Dari<input id="a" type="date" class="input"></label><label>Sampai<input id="b" type="date" class="input"></label></div><div id="out"></div>`;
   const tx = await all('transactions'), ps = await all('products');
   const draw = () => {
     const k = $('#k').value, [lo, hi] = range(k, $('#a').value, $('#b').value); $('#cr').hidden = k !== 'c';

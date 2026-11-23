@@ -1,6 +1,7 @@
 import { all, saveSale, uid } from '../services/db.js';
 import { CONFIG } from '../config.js';
-import { isProd, settings, bizName } from '../services/sync.js';
+import { isProd, settings, bizName, ctx } from '../services/sync.js';
+import { urls } from '../services/storage.js';
 import { rp, toInt, calc } from '../utils/money.js';
 import { $, esc, toast, icon, share } from '../utils/dom.js';
 
@@ -16,8 +17,8 @@ const OPS = /[+\-×÷]/;
 export const title = 'Kasir';
 export async function render(root) {
   const dlg = $('#dlg');
-  let prods = [], cart = new Map(), disc = 0, method = CONFIG.payMethods[0], expr = '', cat = 'Semua', q = '', saving = false, draft = uid();
-  const load = async () => { prods = (await all('products')).filter(p => p.active).sort((a, b) => a.name.localeCompare(b.name)); };
+  let U = {}, prods = [], cart = new Map(), disc = 0, method = CONFIG.payMethods[0], expr = '', cat = 'Semua', q = '', saving = false, draft = uid();
+  const load = async () => { prods = (await all('products')).filter(p => p.active).sort((a, b) => a.name.localeCompare(b.name)); U = isProd() ? await urls(prods.map(p => p.image_path)) : {}; };
   await load();
   root.innerHTML = `<section class="pos"><div class="catalog">
   <input id="q" class="input" type="search" placeholder="Cari produk atau SKU" aria-label="Cari produk">
@@ -37,12 +38,12 @@ export async function render(root) {
   const totals = () => { const sub = [...cart.values()].reduce((a, l) => a + l.p.price * l.qty, 0), d = Math.min(disc, sub), base = sub - d;
     const S = settings(), tax = Math.round(base * S.taxPct / 100), fee = cart.size ? S.fee : 0; return { sub, d, tax, fee, total: base + tax + fee }; };
   const drawGrid = () => { const f = prods.filter(p => (cat === 'Semua' || p.category === cat) && (!q || (p.name + ' ' + (p.sku || '')).toLowerCase().includes(q)));
-    $('#grid').innerHTML = f.length ? f.map(p => `<button class="pcard" data-id="${esc(p.id)}"><b>${esc(p.name)}</b><span>${rp(p.price)} / ${esc(p.unit || 'pcs')}</span>${p.stock != null ? `<small class="${p.stock <= CONFIG.lowStock ? 'warn' : ''}">Stok ${p.stock}</small>` : ''}</button>`).join('')
+    $('#grid').innerHTML = f.length ? f.map(p => `<button class="pcard" data-id="${esc(p.id)}">${U[p.image_path] ? `<img src="${esc(U[p.image_path])}" alt="" loading="lazy">` : `<div class="ph" aria-hidden="true">${icon('produk')}</div>`}<b>${esc(p.name)}</b><span>${rp(p.price)} / ${esc(p.unit || 'pcs')}</span>${p.stock != null ? `<small class="${p.stock <= CONFIG.lowStock ? 'warn' : ''}">Stok ${p.stock}</small>` : ''}</button>`).join('')
       : '<p class="empty">Produk tidak ditemukan. Tambahkan produk di menu Produk.</p>'; };
   const drawChips = () => { $('#cats').innerHTML = ['Semua', ...new Set(prods.map(p => p.category).filter(Boolean))].map(c => `<button data-cat="${esc(c)}" class="${c === cat ? 'on' : ''}">${esc(c)}</button>`).join('');
     $('#meth').innerHTML = CONFIG.payMethods.map(m => `<button data-m="${m}" class="${m === method ? 'on' : ''}">${m}</button>`).join(''); };
   const refresh = () => {
-    const t = totals(), n = [...cart.values()].reduce((a, l) => a + l.qty, 0), recv = calc(expr), cash = method === 'Tunai';
+    const t = totals(), n = [...cart.values()].reduce((a, l) => a + l.qty, 0), recv = calc(expr), cash = method === 'Tunai'; ctx.cart = n;
     $('#lines').innerHTML = cart.size ? [...cart.values()].map(l => `<div class="line" data-id="${esc(l.p.id)}"><div><b>${esc(l.p.name)}</b><small>${rp(l.p.price)}</small></div>
       <div class="qty"><button data-a="dec" aria-label="Kurangi">−</button><input data-a="qty" inputmode="numeric" value="${l.qty}" aria-label="Jumlah"><button data-a="inc" aria-label="Tambah">+</button></div>
       <button class="x" data-a="rm" aria-label="Hapus">${icon('x')}</button><b class="sub">${rp(l.p.price * l.qty)}</b></div>`).join('') : '<p class="empty">Keranjang kosong. Pilih produk untuk memulai.</p>';
@@ -68,13 +69,16 @@ export async function render(root) {
   };
   const quick = k => { const v = k === 'pas' ? String(totals().total) : k; expr = k === 'pas' || !expr ? v : OPS.test(expr.slice(-1)) ? expr + v : expr + '+' + v; };
 
+  // Keranjang layar penuh (HP) ikut riwayat: Back menutupnya lebih dulu.
+  const pop = () => $('#cart').classList.remove('open'); addEventListener('popstate', pop);
+  const closeCart = async () => { $('#cart').classList.remove('open'); if (history.state?.cart) await new Promise(r => { addEventListener('popstate', r, { once: true }); history.back(); }); };
   root.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     const id = b.closest('[data-id]')?.dataset.id, a = b.dataset.a, D = b.dataset;
     if (b.classList.contains('pcard')) add(id, 1);
     else if (a === 'inc') add(id, 1); else if (a === 'dec') add(id, -1); else if (a === 'rm') cart.delete(id);
-    else if (a === 'close') $('#cart').classList.remove('open');
-    else if (b.id === 'cartbar') $('#cart').classList.add('open');
+    else if (a === 'close') closeCart();
+    else if (b.id === 'cartbar') { history.pushState({ cart: 1 }, ''); $('#cart').classList.add('open'); }
     else if (D.k) press(D.k); else if (D.q) quick(D.q);
     else if (D.cat) { cat = D.cat; drawChips(); drawGrid(); } else if (D.m) { method = D.m; drawChips(); }
     refresh();
@@ -101,13 +105,13 @@ export async function render(root) {
     try {
       await saveSale(trx);
       cart.clear(); disc = 0; expr = ''; draft = uid(); $('#disc').value = 0; $('#note').value = '';
-      await load(); drawChips(); drawGrid(); $('#cart').classList.remove('open'); dispatchEvent(new Event('wk:changed')); dispatchEvent(new Event('wk:sale'));
+      await load(); drawChips(); drawGrid(); await closeCart(); dispatchEvent(new Event('wk:changed')); dispatchEvent(new Event('wk:sale'));
       dlg.innerHTML = `<h3>Pembayaran berhasil</h3><pre class="rc">${esc(receiptText(trx))}</pre><small>${isProd() ? 'Tersimpan di perangkat, menunggu sinkronisasi ke server.' : 'Mode demo: tidak dikirim ke server.'}</small>
         <div class="rc-a"><button class="btn" id="rp">Cetak</button><button class="btn" id="rs">Bagikan</button><button class="btn primary" id="rx">Transaksi baru</button></div>`;
-      dlg.showModal(); $('#rp').onclick = () => print(); $('#rs').onclick = () => share(receiptText(trx), trx.no); $('#rx').onclick = () => dlg.close();
+      dlg.showModal(); toast('Pembayaran berhasil. Transaksi disimpan.', 'success'); $('#rp').onclick = () => print(); $('#rs').onclick = () => share(receiptText(trx), trx.no); $('#rx').onclick = () => dlg.close();
     } catch (err) { console.error(err); toast('Gagal menyimpan transaksi. Coba lagi.'); }
     saving = false; refresh();
   };
   drawChips(); drawGrid(); refresh();
-  return () => document.removeEventListener('keydown', key);
+  return () => { document.removeEventListener('keydown', key); removeEventListener('popstate', pop); ctx.cart = 0; };
 }
