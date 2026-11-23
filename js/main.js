@@ -12,12 +12,6 @@ const PAGES = { kasir: ['Kasir', 'owner admin kasir'], transaksi: ['Transaksi', 
 const allowed = () => Object.keys(PAGES).filter(k => PAGES[k][1].includes(ctx.role) && (!PAGES[k][2] || isProd()));
 let cleanup, seq = 0, started = false;
 
-async function net() {
-  const ts = (await all('transactions')).filter(t => !t.seed), on = navigator.onLine, el = $('#net');
-  const wait = ts.filter(t => t.sync === 'menunggu').length, bad = ts.filter(t => t.sync === 'gagal').length;
-  el.textContent = (on ? 'Online' : 'Offline') + (isProd() ? (wait ? `, ${wait} menunggu sinkronisasi` : '') + (bad ? `, ${bad} gagal` : '') : ', mode demo');
-  el.className = 'net ' + (on && !bad ? 'on' : 'off');
-}
 async function go() {
   const ok = allowed(), h = location.hash.slice(1), k = ok.includes(h) ? h : 'kasir', n = ++seq;
   $('#nav').innerHTML = ok.map(p => `<a href="#${p}" class="${p === k ? 'on' : ''}">${icon(p)}<span>${PAGES[p][0]}</span></a>`).join('');
@@ -26,17 +20,16 @@ async function go() {
   try { const m = await import(`./pages/${k}.js`); if (n !== seq) return;
     root.innerHTML = ''; const el = document.createElement('div'); root.append(el); cleanup = await m.render(el); }
   catch (e) { console.error(e); root.innerHTML = '<p class="empty">Halaman gagal dimuat. Muat ulang aplikasi.</p>'; }
-  net();
 }
 function start() {
   if (!$('#out')) $('.top').insertAdjacentHTML('beforeend', '<button class="btn sm" id="out">Keluar</button>');
   $('#out').onclick = () => { sb.signOut(); location.hash = ''; location.reload(); };
   if (!started) { started = true;
-    addEventListener('hashchange', go); addEventListener('online', () => { net(); syncNow(); }); addEventListener('offline', net); addEventListener('wk:changed', net);
+    addEventListener('hashchange', go); addEventListener('online', syncNow);
     addEventListener('wk:sale', () => syncNow()); setInterval(() => navigator.onLine && syncNow(), 30000); }
   go();
 }
-function showAuth() { $('#nav').innerHTML = ''; $('#out')?.remove(); $('#net').textContent = ''; renderAuth($('#app'), { onAuthed: () => enterProd().catch(e => toast(e.message)), onDemo: enterDemo }); }
+function showAuth() { $('#nav').innerHTML = ''; $('#out')?.remove(); renderAuth($('#app'), { onAuthed: () => enterProd().catch(e => toast(e.message)), onDemo: enterDemo }); }
 async function enterDemo() {
   Object.assign(ctx, { mode: 'demo', business: null, role: 'owner' }); setDb('warungku-demo'); $('#demo-banner').hidden = false;
   try { await seedDemo(); } catch (e) { console.error(e); } start();
