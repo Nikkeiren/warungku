@@ -17,7 +17,10 @@ export const payload = t => ({ id: t.id, no: t.no, at: new Date(t.at).toISOStrin
 // Tarik data server (sumber kebenaran) ke cache lokal.
 export async function pull() {
   if (!isProd()) return; const b = ctx.business.id;
-  const [ps, ts] = await Promise.all([sb.select('products', 'select=*&business_id=eq.' + b), sb.select('transactions', `select=*,transaction_items(*)&business_id=eq.${b}&order=at.desc&limit=500`)]);
+  const ps = await sb.select('products', 'select=*&business_id=eq.' + b);
+  // Fetch transaksi secara berhalaman supaya laporan dan riwayat tidak terpotong pada 500.
+  let ts = [], offset = 0, batch;
+  do { batch = await sb.select('transactions', `select=*,transaction_items(*)&business_id=eq.${b}&order=at.desc&limit=500&offset=${offset}`); ts.push(...batch); offset += batch.length; } while (batch.length === 500);
   const ids = new Set(ps.map(p => p.id)), lt = new Map((await all('transactions')).map(t => [t.id, t]));
   await Promise.all([...ps.map(p => put('products', p)), ...(await all('products')).filter(p => !ids.has(p.id)).map(p => del('products', p.id)),
     ...ts.filter(t => lt.get(t.id)?.sync !== 'menunggu').map(t => put('transactions', toLocal(t)))]);
