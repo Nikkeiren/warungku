@@ -14,7 +14,7 @@ export async function all(s) { const d = await open(); return new Promise((ok, n
 export async function put(s, v) { const tx = (await open()).transaction(s, 'readwrite'); tx.objectStore(s).put(v); return done(tx); }
 export async function del(s, id) { const tx = (await open()).transaction(s, 'readwrite'); tx.objectStore(s).delete(id); return done(tx); }
 export const audit = (action, ref, detail = '') => put('audit', { id: uid(), at: Date.now(), action, ref, detail });
-const bump = (P, items, sign) => items.forEach(i => P.get(i.productId).onsuccess = e => { const p = e.target.result; if (p && p.stock != null) { p.stock += sign * i.qty; P.put(p); } });
+const bump = (P, items, sign, tx) => items.forEach(i => { const r=P.get(i.productId); r.onsuccess=e=>{const p=e.target.result;if(!p){tx.abort();return;}if(p.stock!=null){const n=p.stock+sign*i.qty;if(n<0){tx.abort();return;}p.stock=n;P.put(p);}}; });
 // Idempoten: id transaksi yang sama tidak pernah dicatat dua kali. Transaksi + stok disimpan atomik.
 export async function saveSale(t) {
   const tx = (await open()).transaction(['products', 'transactions', 'audit'], 'readwrite'), T = tx.objectStore('transactions');
