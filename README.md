@@ -12,10 +12,12 @@ js/services/db.js         IndexedDB: cache lokal + antrean transaksi (satu datab
 js/services/supabase.js   klien REST (Auth + PostgREST + RPC), refresh token otomatis
 js/services/sync.js       pull, flush antrean, void, produk, stok, riwayat stok
 js/data/demo.js           data contoh (hanya mode demo)
-js/pages/{auth,kasir,produk,inventaris,transaksi,dashboard,laporan,pengeluaran,pengaturan,pengguna}.js
+js/pages/{auth,kasir,produk,inventaris,transaksi,lainnya,dashboard,laporan,pengeluaran,pengaturan,pengguna}.js
+js/services/storage.js  kompres, unggah, signed URL gambar | js/data/{fonts,menu}.js
 supabase/schema.sql                  tabel dasar + RLS
 supabase/migrations/002_produksi.sql kolom pengaturan, fungsi server, pengetatan RLS
 supabase/migrations/003_laporan.sql  tabel pengeluaran + RLS
+supabase/migrations/004_tampilan.sql kolom tampilan, image_path, bucket Storage + policy
 ```
 ## 2. Arsitektur
 - Server (Supabase) adalah sumber kebenaran. IndexedDB hanya cache baca dan antrean transaksi saat offline.
@@ -29,12 +31,18 @@ supabase/migrations/003_laporan.sql  tabel pengeluaran + RLS
 ## 4. Sudah berfungsi
 Daftar/masuk, daftarkan usaha, kasir lengkap (kalkulator, kembalian, nominal cepat, struk, pajak dan biaya layanan dari pengaturan), produk (tambah/ubah/hapus ke server), inventaris (stok masuk/keluar/penyesuaian + riwayat), transaksi (riwayat dari semua perangkat, batal dengan alasan, status sinkronisasi), ringkasan (periode, grafik, terlaris, stok menipis, laba kotor), pengeluaran per kategori, laporan (harian/pekanan/bulanan/tahunan, per produk/kategori/metode, kurang laku, stok, HPP, laba kotor dan bersih, ekspor CSV, cetak ke PDF lewat dialog cetak browser), pengaturan usaha, pengguna (tambah/ubah/hapus kasir dan admin), PWA dan antrean offline, mode demo terpisah.
 ## 5. Belum selesai (jujur)
-**Belum diuji terhadap Supabase sungguhan** (tidak ada kredensial/jaringan di lingkungan pengembangan); hanya logika klien dan sintaks yang diuji. SQL belum dijalankan di PostgreSQL. Belum ada: manajemen kategori terpisah, foto produk dan Storage, varian/modifier, barcode scanner, diskon per item, supplier dan pembelian, resep/BOM, pelanggan, pengeluaran, bukti pengeluaran (Storage), logo/mata uang/format struk/metode bayar di pengaturan, pengembalian dana terpisah dari pembatalan, produk dan transaksi dibatasi 1000/500 baris saat pull, satu usaha per akun, penulisan produk hanya online.
+**Belum diuji terhadap Supabase sungguhan** (tidak ada kredensial/jaringan di lingkungan pengembangan); hanya logika klien dan sintaks yang diuji. SQL belum dijalankan di PostgreSQL. Belum ada: manajemen kategori terpisah, foto produk dan Storage, varian/modifier, barcode scanner, diskon per item, supplier dan pembelian, resep/BOM, pelanggan, pengeluaran, logo/mata uang/format struk/metode bayar di pengaturan, pengembalian dana terpisah dari pembatalan, produk dan transaksi dibatasi 1000/500 baris saat pull, satu usaha per akun, penulisan produk hanya online.
 ## 6. Menjalankan
 `npx serve .` lalu buka `http://localhost:3000` (wajib localhost atau HTTPS).
 ## 7. Konfigurasi Supabase (tindakan pemilik proyek)
-1. Buat project Supabase. 2. SQL Editor: jalankan `supabase/schema.sql`, lalu `supabase/migrations/002_produksi.sql` dan `003_laporan.sql`. 3. Authentication: atur konfirmasi email sesuai kebutuhan. 4. Isi `env.js` dengan Project URL dan anon key (Settings, API). Jangan pernah menaruh service_role key di frontend.
+1. Buat project Supabase. 2. SQL Editor: jalankan `supabase/schema.sql`, lalu `supabase/migrations/002_produksi.sql` `003_laporan.sql`, dan `004_tampilan.sql` (membuat bucket privat `warungku-images` beserta policy-nya; tidak perlu membuat bucket manual). 3. Authentication: atur konfirmasi email sesuai kebutuhan. 4. Isi `env.js` dengan Project URL dan anon key (Settings, API). Jangan pernah menaruh service_role key di frontend.
 ## 8. Environment variables
 `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
 ## 9. Vercel
 Framework: Other. Output: `.` Build command: `echo "window.WARUNGKU_ENV={SUPABASE_URL:'$SUPABASE_URL',SUPABASE_ANON_KEY:'$SUPABASE_ANON_KEY'}" > env.js`
+
+## 10. Pembaruan: tampilan, gambar, navigasi
+- Navbar bawah 5 menu (Kasir, Transaksi, Produk, Inventaris, Lainnya); Ringkasan, Laporan, Pengeluaran, Pengguna, Pengaturan ada di Lainnya.
+- Nama usaha, font (15 pilihan, Google Fonts, perlu internet saat pertama dimuat), banner, dan background tersimpan per usaha di `businesses`; gambar di Storage `warungku-images/{business_id}/products|branding/{uuid}.webp`, privat, dibaca lewat signed URL 24 jam. Gambar produk dan branding tidak tampil saat offline.
+- Tombol Back: menutup dialog/keranjang dulu, lalu mundur satu halaman; di halaman paling awal muncul dialog keluar. Zoom dinonaktifkan lewat meta viewport dan touch-action.
+- Akar masalah layout Ringkasan/Laporan: grid `1fr` dengan input tanggal (min-content lebih lebar dari layar) membuat halaman lebih lebar dari viewport; Chrome Android lalu memperkecil seluruh halaman dan zoom itu terbawa karena aplikasi satu dokumen. Diperbaiki dengan `minmax(0,1fr)`, `min-width:0`, struktur filter tanpa grid bersarang, dan viewport tanpa zoom.
