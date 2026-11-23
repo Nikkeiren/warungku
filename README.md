@@ -1,37 +1,40 @@
 # Warungku: Kelola Usaha, Lebih Mudah.
-Universal POS (PWA, HTML/CSS/JS modular tanpa build step). **v1 adalah irisan inti**: kasir, produk, transaksi, ringkasan. Berjalan penuh secara lokal dalam mode demo.
+POS universal (PWA, HTML/CSS/JS modular, tanpa build step) dengan backend Supabase. Status: **belum lengkap**; lihat bagian 5.
 
 ## 1. Struktur
 ```
-index.html  env.js  sw.js  manifest.webmanifest  package.json
-css/styles.css                      token warna & komponen
-js/main.js                          router hash, indikator koneksi, service worker
-js/config.js                        konfigurasi (pajak, biaya, nominal cepat, env)
-js/utils/{money,dom}.js             rupiah integer & kalkulator aman | helper DOM, ikon, toast
-js/services/db.js                   IndexedDB: produk, transaksi, audit (idempoten, atomik)
-js/data/demo.js                     data contoh (bertanda demo)
-js/pages/{kasir,produk,transaksi,dashboard}.js
-supabase/schema.sql                 tabel + RLS per usaha
+index.html env.js sw.js manifest.webmanifest package.json
+css/styles.css
+js/main.js            router, akses per role, sinkronisasi otomatis, status koneksi
+js/config.js          konfigurasi (env.js -> SUPABASE_URL, SUPABASE_ANON_KEY)
+js/utils/{money,dom}.js
+js/services/db.js         IndexedDB: cache lokal + antrean transaksi (satu database per usaha)
+js/services/supabase.js   klien REST (Auth + PostgREST + RPC), refresh token otomatis
+js/services/sync.js       pull, flush antrean, void, produk, stok, riwayat stok
+js/data/demo.js           data contoh (hanya mode demo)
+js/pages/{auth,kasir,produk,inventaris,transaksi,dashboard,laporan,pengeluaran,pengaturan,pengguna}.js
+supabase/schema.sql                  tabel dasar + RLS
+supabase/migrations/002_produksi.sql kolom pengaturan, fungsi server, pengetatan RLS
+supabase/migrations/003_laporan.sql  tabel pengeluaran + RLS
 ```
 ## 2. Arsitektur
-- Halaman = modul `render(el)` + fungsi pembersih; router memuatnya dengan `import()`.
-- Data lokal di IndexedDB (bukan localStorage). Database demo (`warungku-demo`) terpisah dari produksi.
-- Uang disimpan sebagai integer rupiah; pajak dibulatkan dengan `Math.round`.
-- Anti transaksi ganda: id UUID dibuat saat keranjang mulai, penyimpanan idempoten, tombol Bayar dikunci saat menyimpan. Transaksi dan stok disimpan dalam satu transaksi IndexedDB.
-- Pembatalan: status `batal` + alasan wajib + stok dikembalikan + catatan di `audit`. Transaksi tidak dihapus.
-- Offline: service worker cache-first. Transaksi baru bertanda `synced:false` dan dihitung di header sebagai "tersimpan lokal". **Sinkronisasi ke Supabase belum ada**, jadi aplikasi tidak pernah mengklaim data sudah tersinkron.
-- Supabase: `schema.sql` (isolasi per usaha lewat `memberships`, role owner/admin/kasir, tanpa policy delete untuk riwayat). Tidak ada service_role di frontend.
+- Server (Supabase) adalah sumber kebenaran. IndexedDB hanya cache baca dan antrean transaksi saat offline.
+- Transaksi dikirim lewat fungsi `create_sale`: tervalidasi (total, kembalian), atomik (transaksi + item + stok), idempoten (id UUID dari klien). Klien tidak punya izin INSERT/UPDATE langsung ke tabel transaksi.
+- Status transaksi: `menunggu` (di antrean), `tersinkron` (dikonfirmasi server), `gagal` (ditolak server, ada tombol Kirim ulang). Offline atau error 5xx tetap `menunggu` dan dicoba lagi otomatis (saat online kembali dan tiap 30 detik).
+- Pembatalan (`void_sale`), perubahan stok (`adjust_stock`), dan anggota (`set_member`) berjalan di server, hanya online, dan tercatat di `audit_log`.
+- Role: owner (semua), admin (produk, inventaris, ringkasan, pembatalan), kasir (kasir dan riwayat). Menu disaring di UI, izin sebenarnya dipaksa RLS dan fungsi server.
+- Uang selalu integer rupiah. Hanya anon key di frontend.
 ## 3. Komponen UI
-`.btn` (`.primary .danger .sm .lg`), `.input`, `.chips`, `.pcard`, `.item/.list`, `.stat/.panel`, `.cart`, `.calc/.keys`, `dialog#dlg`, `toast()`, `icon()`. Token di `:root` (`--pri` pine, `--gold` kunyit, `--bg`).
+`.btn`, `.input`, `.chips`, `.pcard`, `.item/.list`, `.stat/.panel`, `.cart`, `.calc/.keys`, `dialog#dlg`, `toast()`, `icon()`. Token warna di `:root`.
 ## 4. Sudah berfungsi
-Kasir (cari, filter kategori, keranjang, kuantitas manual, diskon transaksi, catatan, pajak/biaya via `config.js`, 4 metode bayar), kalkulator cepat (+ − × ÷, nominal cepat, uang pas, kembalian otomatis, sentuhan dan keyboard), struk (cetak, bagikan), stok berkurang saat jual, produk (tambah/ubah/hapus, SKU, modal, jual, kategori, satuan, stok, aktif), transaksi (cari, filter metode, detail, batal), ringkasan (periode termasuk rentang khusus, grafik, terlaris, per metode, stok menipis, laba kotor dari HPP), PWA dasar, data demo.
-## 5. Belum selesai
-Supabase Auth, mode produksi, dan sinkronisasi antrean; UI role/izin; varian produk; foto produk; manajemen kategori terpisah; stok masuk/keluar/penyesuaian, pemasok, resep/BOM; diskon per item; pelanggan; pengeluaran; laporan per kategori/mingguan/bulanan/tahunan, ekspor CSV/PDF; halaman pengaturan usaha; ikon PNG untuk PWA (saat ini SVG). Pengujian di browser belum dilakukan.
+Daftar/masuk, daftarkan usaha, kasir lengkap (kalkulator, kembalian, nominal cepat, struk, pajak dan biaya layanan dari pengaturan), produk (tambah/ubah/hapus ke server), inventaris (stok masuk/keluar/penyesuaian + riwayat), transaksi (riwayat dari semua perangkat, batal dengan alasan, status sinkronisasi), ringkasan (periode, grafik, terlaris, stok menipis, laba kotor), pengeluaran per kategori, laporan (harian/pekanan/bulanan/tahunan, per produk/kategori/metode, kurang laku, stok, HPP, laba kotor dan bersih, ekspor CSV, cetak ke PDF lewat dialog cetak browser), pengaturan usaha, pengguna (tambah/ubah/hapus kasir dan admin), PWA dan antrean offline, mode demo terpisah.
+## 5. Belum selesai (jujur)
+**Belum diuji terhadap Supabase sungguhan** (tidak ada kredensial/jaringan di lingkungan pengembangan); hanya logika klien dan sintaks yang diuji. SQL belum dijalankan di PostgreSQL. Belum ada: manajemen kategori terpisah, foto produk dan Storage, varian/modifier, barcode scanner, diskon per item, supplier dan pembelian, resep/BOM, pelanggan, pengeluaran, bukti pengeluaran (Storage), logo/mata uang/format struk/metode bayar di pengaturan, pengembalian dana terpisah dari pembatalan, produk dan transaksi dibatasi 1000/500 baris saat pull, satu usaha per akun, penulisan produk hanya online.
 ## 6. Menjalankan
-`npx serve .` lalu buka `http://localhost:3000` (wajib localhost atau HTTPS untuk service worker dan `crypto.randomUUID`). Naikkan `V` di `sw.js` tiap rilis.
-## 7. Konfigurasi Supabase
-1. Buat project. 2. Jalankan `supabase/schema.sql`. 3. Aktifkan Auth Email. 4. Isi env di bawah. Auth dan sinkronisasi adalah langkah berikutnya.
+`npx serve .` lalu buka `http://localhost:3000` (wajib localhost atau HTTPS).
+## 7. Konfigurasi Supabase (tindakan pemilik proyek)
+1. Buat project Supabase. 2. SQL Editor: jalankan `supabase/schema.sql`, lalu `supabase/migrations/002_produksi.sql` dan `003_laporan.sql`. 3. Authentication: atur konfirmasi email sesuai kebutuhan. 4. Isi `env.js` dengan Project URL dan anon key (Settings, API). Jangan pernah menaruh service_role key di frontend.
 ## 8. Environment variables
-`SUPABASE_URL`, `SUPABASE_ANON_KEY` (hanya anon key). Dibaca `env.js` ke `config.js`; belum dipakai klien Supabase di v1.
-## 9. Deployment Vercel
-Framework: Other. Output directory: `.` Build command: `echo "window.WARUNGKU_ENV={SUPABASE_URL:'$SUPABASE_URL',SUPABASE_ANON_KEY:'$SUPABASE_ANON_KEY'}" > env.js`
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`.
+## 9. Vercel
+Framework: Other. Output: `.` Build command: `echo "window.WARUNGKU_ENV={SUPABASE_URL:'$SUPABASE_URL',SUPABASE_ANON_KEY:'$SUPABASE_ANON_KEY'}" > env.js`
