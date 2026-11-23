@@ -5,11 +5,11 @@ export const configured = () => !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_K
 let sess = JSON.parse(localStorage.getItem(K) || 'null');
 const save = s => { sess = s; s ? localStorage.setItem(K, JSON.stringify(s)) : localStorage.removeItem(K); };
 export const session = () => sess;
-async function call(path, { method = 'GET', body, headers = {}, auth = true } = {}, retry = true) {
+async function call(path, { method = 'GET', body, headers = {}, auth = true, raw = false } = {}, retry = true) {
   const h = { apikey: CONFIG.SUPABASE_ANON_KEY, 'Content-Type': 'application/json', ...headers, Authorization: 'Bearer ' + (auth && sess ? sess.access_token : CONFIG.SUPABASE_ANON_KEY) };
-  let r; try { r = await fetch(CONFIG.SUPABASE_URL + path, { method, headers: h, body: body === undefined ? undefined : JSON.stringify(body) }); }
+  let r; try { r = await fetch(CONFIG.SUPABASE_URL + path, { method, headers: h, body: body === undefined ? undefined : raw ? body : JSON.stringify(body) }); }
   catch { const e = new Error('Tidak ada koneksi'); e.offline = true; throw e; }
-  if (r.status === 401 && auth && sess?.refresh_token && retry) { await refresh(); return call(path, { method, body, headers, auth }, false); }
+  if (r.status === 401 && auth && sess?.refresh_token && retry) { await refresh(); return call(path, { method, body, headers, auth, raw }, false); }
   const txt = await r.text(); let d = null; try { d = txt ? JSON.parse(txt) : null; } catch {}
   if (!r.ok) { const e = new Error(d?.message || d?.msg || d?.error_description || 'Permintaan gagal (' + r.status + ')'); e.status = r.status; e.code = d?.code; throw e; }
   return d;
@@ -24,3 +24,7 @@ export const select = (t, q = '') => call(`/rest/v1/${t}?${q}`);
 export const upsert = (t, rows) => call('/rest/v1/' + t, { method: 'POST', body: rows, headers: { Prefer: 'resolution=merge-duplicates,return=minimal' } });
 export const patch = (t, q, body) => call(`/rest/v1/${t}?${q}`, { method: 'PATCH', body, headers: { Prefer: 'return=minimal' } });
 export const remove = (t, q) => call(`/rest/v1/${t}?${q}`, { method: 'DELETE' });
+export const setPassword = password => call('/auth/v1/user', { method: 'PUT', body: { password } });
+export const storageUpload = (path, blob) => call('/storage/v1/object/warungku-images/' + path, { method: 'POST', body: blob, raw: true, headers: { 'Content-Type': blob.type || 'image/webp', 'x-upsert': 'false' } });
+export const storageRemove = prefixes => call('/storage/v1/object/warungku-images', { method: 'DELETE', body: { prefixes } });
+export const sign = paths => call('/storage/v1/object/sign/warungku-images', { method: 'POST', body: { expiresIn: 86400, paths } });

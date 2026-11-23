@@ -17,10 +17,7 @@ export const payload = t => ({ id: t.id, no: t.no, at: new Date(t.at).toISOStrin
 // Tarik data server (sumber kebenaran) ke cache lokal.
 export async function pull() {
   if (!isProd()) return; const b = ctx.business.id;
-  const ps = await sb.select('products', 'select=*&business_id=eq.' + b);
-  // Fetch transaksi secara berhalaman supaya laporan dan riwayat tidak terpotong pada 500.
-  let ts = [], offset = 0, batch;
-  do { batch = await sb.select('transactions', `select=*,transaction_items(*)&business_id=eq.${b}&order=at.desc&limit=500&offset=${offset}`); ts.push(...batch); offset += batch.length; } while (batch.length === 500);
+  const [ps, ts] = await Promise.all([sb.select('products', 'select=*&business_id=eq.' + b), sb.select('transactions', `select=*,transaction_items(*)&business_id=eq.${b}&order=at.desc&limit=500`)]);
   const ids = new Set(ps.map(p => p.id)), lt = new Map((await all('transactions')).map(t => [t.id, t]));
   await Promise.all([...ps.map(p => put('products', p)), ...(await all('products')).filter(p => !ids.has(p.id)).map(p => del('products', p.id)),
     ...ts.filter(t => lt.get(t.id)?.sync !== 'menunggu').map(t => put('transactions', toLocal(t)))]);
@@ -29,7 +26,7 @@ export async function pull() {
 export async function flush() {
   if (!isProd()) return;
   for (const t of (await all('transactions')).filter(t => !t.seed && t.sync === 'menunggu').sort((a, b) => a.at - b.at)) {
-    try { await sb.rpc('create_sale', { b: ctx.business.id, t: payload(t) }); await put('transactions', { ...t, synced: true, sync: 'tersinkron', syncError: null }); }
+    try { await sb.rpc('create_sale', { b: ctx.business.id, t: payload(t) }); await put('transactions', { ...t, synced: true, sync: 'tersinkron', syncError: null }); dispatchEvent(new Event('wk:synced')); }
     catch (e) { if (e.offline || e.status === 401 || e.status >= 500) break;
       await put('transactions', /23505|duplicate key/.test((e.code || '') + e.message) ? { ...t, synced: true, sync: 'tersinkron' } : { ...t, sync: 'gagal', syncError: e.message }); }
   }
@@ -49,7 +46,7 @@ export async function saveProduct(rec, isNew) {
 }
 export async function removeProduct(p) {
   if (!isProd()) { await del('products', p.id); return audit('hapus_produk', p.id, p.name); }
-  await sb.remove('products', 'id=eq.' + p.id); await sb.upsert('audit_log', { business_id: ctx.business.id, action: 'hapus_produk', ref: p.id, detail: p.name }); await pull();
+  await sb.remove('products', 'id=eq.' + p.id); if (p.image_path) await sb.storageRemove([p.image_path]).catch(() => {}); await sb.upsert('audit_log', { business_id: ctx.business.id, action: 'hapus_produk', ref: p.id, detail: p.name }); await pull();
 }
 export async function adjustStock(pid, mode, qty, note) {
   if (isProd()) { await sb.rpc('adjust_stock', { b: ctx.business.id, pid, mode, qty, note }); return pull(); }
