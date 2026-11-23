@@ -1,10 +1,11 @@
 import { CONFIG } from '../config.js';
 // IndexedDB sebagai penyimpanan lokal. Data demo dan produksi memakai database terpisah.
-const NAME = 'warungku-' + CONFIG.MODE;
+let NAME = 'warungku-demo'; // diganti lewat setDb(): satu database per usaha, demo terpisah
+export const setDb = n => { NAME = n; dbp = null; };
 let dbp;
 const open = () => dbp ||= new Promise((ok, no) => {
-  const r = indexedDB.open(NAME, 1);
-  r.onupgradeneeded = () => ['products', 'transactions', 'audit', 'meta'].forEach(s => r.result.createObjectStore(s, { keyPath: s === 'meta' ? 'k' : 'id' }));
+  const r = indexedDB.open(NAME, 2);
+  r.onupgradeneeded = () => ['products', 'transactions', 'audit', 'meta', 'expenses'].forEach(s => r.result.objectStoreNames.contains(s) || r.result.createObjectStore(s, { keyPath: s === 'meta' ? 'k' : 'id' }));
   r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error);
 });
 const done = tx => new Promise((ok, no) => { tx.oncomplete = ok; tx.onerror = tx.onabort = () => no(tx.error); });
