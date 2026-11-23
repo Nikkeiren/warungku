@@ -29,7 +29,7 @@ async function go() {
   net();
 }
 function start() {
-  if (!$('#out')) $('.top').insertAdjacentHTML('beforeend', '<button class="btn sm" id="out">Keluar</button>');
+  if (!$('#out')) $('.top-actions').insertAdjacentHTML('beforeend', '<button class="btn sm" id="out">Keluar</button>');
   $('#out').onclick = () => { sb.signOut(); location.hash = ''; location.reload(); };
   if (!started) { started = true;
     addEventListener('hashchange', go); addEventListener('online', () => { net(); syncNow(); }); addEventListener('offline', net); addEventListener('wk:changed', net);
