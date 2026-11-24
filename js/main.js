@@ -25,7 +25,7 @@ async function brand() {
 }
 async function go() {
   const h = location.hash.slice(1), k = Object.hasOwn(PAGES, h) && can(h, ctx.role, isProd()) ? h : 'kasir', tab = TABS.includes(k) ? k : 'lainnya', n = ++seq;
-  $('#nav').innerHTML = TABS.filter(t => can(t, ctx.role, isProd())).map(t => `<a href="#${t}" class="${t === tab ? 'on' : ''}"${t === tab ? ' aria-current="page"' : ''}>${icon(t)}<span>${PAGES[t][0]}</span></a>`).join('');
+  $('#nav').innerHTML = TABS.filter(t => can(t, ctx.role, isProd())).map(t => `<a href="#${t}" class="${t === tab ? 'on' : ''}"${t === tab ? ' aria-current="page"' : ''}>${icon(t)}<span>${PAGES[t][0]}</span></a>`).join('') + '<button class="sbc" id="sbc" type="button">Sembunyikan menu</button>';
   cleanup?.(); cleanup = null;
   const root = $('#app'); root.innerHTML = '<p class="empty">Memuat…</p>';
   try { const m = await import(`./pages/${k}.js`); if (n !== seq) return;
@@ -64,5 +64,20 @@ async function enterProd() {
   Object.assign(ctx, { mode: 'prod', business: m.businesses, role: m.role }); localStorage.setItem('warungku.active', m.businesses.id); saveCtx();
   setDb('warungku-' + ctx.business.id); $('#demo-banner').hidden = true; brand(); await syncNow(); start();
 }
+// Sidebar landscape (html.ls = landscape dan tinggi <= 600px): geser ke kiri untuk menutup, geser ke kanan dari sisi kiri untuk membuka.
+// Hanya membaca touchstart/touchend (pasif), sehingga tidak pernah menahan scroll. Chips, tabel, slider, dialog, dan keranjang dikecualikan.
+(function sidebar() {
+  const H = document.documentElement, mq = matchMedia('(orientation: landscape) and (max-height: 600px)'), W = 176;
+  const apply = () => H.classList.toggle('ls', mq.matches); apply(); mq.addEventListener('change', apply);
+  if (localStorage.getItem('warungku.sb') === '0') H.classList.add('sb-closed');
+  const set = open => { H.classList.toggle('sb-closed', !open); localStorage.setItem('warungku.sb', open ? '1' : '0'); };
+  document.body.insertAdjacentHTML('beforeend', '<button class="sbh" id="sbh" type="button" aria-label="Buka menu"></button>');
+  document.addEventListener('click', e => { if (e.target.closest('#sbc')) set(false); else if (e.target.closest('#sbh')) set(true); });
+  let s = null;
+  addEventListener('touchstart', e => { const t = e.touches[0]; s = H.classList.contains('ls') && e.touches.length === 1 ? { x: t.clientX, y: t.clientY, el: e.target } : null; }, { passive: true });
+  addEventListener('touchend', e => { if (!s) return; const t = e.changedTouches[0], dx = t.clientX - s.x, dy = t.clientY - s.y, closed = H.classList.contains('sb-closed'), st = s; s = null;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8 || st.el.closest?.('.chips,.quick,.tw,input[type=range],dialog,.cart.open')) return;
+    if (!closed && dx < 0 && st.x < W + 60) set(false); else if (closed && dx > 0 && st.x < 140) set(true); }, { passive: true });
+})();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 (async () => { if (sb.configured() && sb.session()) { try { return await enterProd(); } catch (e) { console.error(e); } } showAuth(); })();
