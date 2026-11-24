@@ -80,3 +80,38 @@ a.btn{text-decoration:none}.grow{flex:1;min-width:0}.acts.v{flex-direction:colum
 #toasts .success .ic{color:#8FD3A8}#toasts .info .ic{color:#9CC7E6}#toasts .warning .ic{color:var(--gold)}#toasts .error .ic{color:#F1948A}
 @keyframes tin{from{opacity:0;transform:translateY(10px)}}
 @media(min-width:900px){#toasts{bottom:24px;left:200px}}
+/* ===== Kasir: kontrol kuantitas, kartu produk, cahaya ambient, pencarian mengambang (semua mode) ===== */
+.pcard{cursor:default;align-items:stretch;position:relative;isolation:isolate;overflow:hidden;contain:paint;transition:border-color .2s,box-shadow .2s}.pcard:active{transform:none}
+.pcard.has{border-color:var(--pri)}
+.prow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;margin-top:auto}
+.pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:99px;background:var(--s);overflow:hidden}
+.pill button{width:38px;height:38px;border:0;background:none;font-size:20px;line-height:1;color:var(--ink);cursor:pointer}.pill button:active{background:var(--pri2)}.pill button:disabled{opacity:.3;cursor:default}
+.pill input{width:34px;height:38px;padding:0;border:0;background:none;text-align:center;font:inherit;font-weight:700;color:var(--ink)}
+.pcard.glow{border-color:rgb(var(--glow)/.35);box-shadow:0 8px 20px -12px rgb(var(--glow)/.7)}.pcard.glow.has{border-color:var(--pri)}
+.pcard.glow::before{content:"";position:absolute;z-index:-1;left:-10%;right:-10%;top:-15%;height:62%;pointer-events:none;background:radial-gradient(ellipse at 50% 40%,rgb(var(--glow)/.34),rgb(var(--glow)/.12) 48%,transparent 72%);animation:glow-in .5s ease-out}
+@keyframes glow-in{from{opacity:0}}
+.catalog{padding-bottom:132px}
+.fab{--fabb:calc(130px + env(safe-area-inset-bottom));position:fixed;right:12px;bottom:calc(var(--fabb) + var(--kb,0px));z-index:6;display:flex;align-items:center;height:48px;width:48px;overflow:hidden;border:1px solid var(--line);border-radius:14px;background:var(--s);box-shadow:0 4px 14px #0002;transition:width .25s ease}
+.fab.open{width:min(88vw,360px);border-color:var(--pri)}
+.fab button{flex:none;width:46px;height:46px;border:0;background:none;color:var(--pri);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.fab input{flex:1;min-width:0;height:46px;border:0;padding:0 4px;background:none;font:inherit;font-size:16px;color:var(--ink);outline:0;opacity:0;pointer-events:none;transition:opacity .2s}
+.fab .fx{color:var(--mut);opacity:0;pointer-events:none;transition:opacity .2s}.fab.open input,.fab.open .fx{opacity:1;pointer-events:auto}
+@media(min-width:900px){html:not(.ls) .fab{right:432px;--fabb:24px}html:not(.ls) .catalog{padding-bottom:88px}}
+/* ===== Landscape ponsel: html.ls (diatur JS: landscape dan tinggi <= 600px). Portrait dan desktop tidak terpengaruh ===== */
+html.ls{--sbw:176px}html.ls.sb-closed{--sbw:0px}
+.ls body{padding:0 0 0 var(--sbw);transition:padding-left .25s ease}
+.ls .nav{top:0;bottom:0;left:0;right:auto;width:176px;flex-direction:column;border-top:0;border-right:1px solid var(--line);padding:56px 8px calc(8px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left));transform:none;transition:transform .25s ease;touch-action:pan-y;overflow-y:auto;z-index:8}
+.ls.sb-closed .nav{transform:translateX(-100%)}
+.ls .nav a{flex:none;flex-direction:row;gap:10px;padding:0 12px;min-height:44px;border-radius:12px;font-size:14px}.ls .nav a.on{background:var(--pri2)}
+.sbc{display:none;margin-top:auto;min-height:40px;border:1px solid var(--line);border-radius:12px;background:var(--s);color:var(--mut);font:600 13px system-ui;cursor:pointer}.ls .sbc{display:block}
+.sbh{display:none;position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:7;width:22px;height:64px;border:0;border-radius:0 12px 12px 0;background:var(--pri);opacity:.9;cursor:pointer}
+.sbh::after{content:"";position:absolute;left:9px;top:24px;width:3px;height:16px;border-radius:2px;background:#fff}.ls.sb-closed .sbh{display:block}
+.ls .pos{display:block}.ls .cart{display:none;position:static;max-height:none}
+.ls .cart.open{display:block;position:fixed;inset:0;z-index:20;overflow:auto;border-radius:0;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+.ls .cart-h .btn{display:inline-flex}
+.ls .cartbar{display:flex;left:calc(var(--sbw) + 12px);bottom:calc(12px + env(safe-area-inset-bottom));transition:left .25s ease}
+.ls .fab{--fabb:calc(74px + env(safe-area-inset-bottom))}.ls .catalog{padding-bottom:132px}
+.ls .grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}.ls .pcard img,.ls .pcard .ph{aspect-ratio:16/9;max-height:112px}
+.ls main{padding-left:12px;padding-right:calc(12px + env(safe-area-inset-right))}.ls #toasts{left:var(--sbw);bottom:calc(76px + env(safe-area-inset-bottom))}
+.ls .pcard{padding:10px}.ls .prow{flex-wrap:nowrap}.ls .prow span{font-size:13px;white-space:nowrap}
+.ls .pill button{width:34px;height:36px}.ls .pill input{width:30px;height:36px}
