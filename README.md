@@ -46,3 +46,14 @@ Framework: Other. Output: `.` Build command: `echo "window.WARUNGKU_ENV={SUPABAS
 - Nama usaha, font (15 pilihan, Google Fonts, perlu internet saat pertama dimuat), banner, dan background tersimpan per usaha di `businesses`; gambar di Storage `warungku-images/{business_id}/products|branding/{uuid}.webp`, privat, dibaca lewat signed URL 24 jam. Gambar produk dan branding tidak tampil saat offline.
 - Tombol Back: menutup dialog/keranjang dulu, lalu mundur satu halaman; di halaman paling awal muncul dialog keluar. Zoom dinonaktifkan lewat meta viewport dan touch-action.
 - Akar masalah layout Ringkasan/Laporan: grid `1fr` dengan input tanggal (min-content lebih lebar dari layar) membuat halaman lebih lebar dari viewport; Chrome Android lalu memperkecil seluruh halaman dan zoom itu terbawa karena aplikasi satu dokumen. Diperbaiki dengan `minmax(0,1fr)`, `min-width:0`, struktur filter tanpa grid bersarang, dan viewport tanpa zoom.
+
+## 11. Urutan migrasi (jalankan berurutan di SQL Editor)
+`schema.sql`, `002_produksi.sql`, `003_laporan.sql`, `004_hardening.sql`, `004_tampilan.sql`, `005_policy_cleanup.sql`, `006_policy_split.sql`, `007_sinkron_offline.sql`.
+- `007` menggantikan `create_sale` dari `004_hardening`: penjualan yang sudah terjadi di kasir tetap diterima saat sinkron walau harga/modal berubah, stok kurang, atau produk sudah dihapus. Selisih dicatat di `audit_log` (action `sinkron_selisih`; belum ada halaman di aplikasi untuk melihatnya, cek lewat SQL Editor).
+- Konsekuensi: kasir yang membuat payload sendiri bisa mengirim harga berbeda dari harga produk; hal itu tidak ditolak, tetapi tercatat.
+
+## 12. Kasir: landscape dan pengalaman produk
+- `html.ls` (landscape dan tinggi layar <= 600px) mengaktifkan sidebar yang bisa digeser (kiri = tutup, kanan dari sisi kiri = buka; ada juga tab kecil di tepi kiri dan tombol Sembunyikan menu). Portrait dan desktop tidak berubah.
+- Landscape: keranjang tersembunyi sampai bilah Keranjang ditekan; memilih produk tidak membuka keranjang. Isi keranjang tetap saat kembali ke daftar produk.
+- Kartu produk memakai kontrol kuantitas (- jumlah +), kolom Diskon dihapus dari keranjang (state diskon tetap 0, kolom server tidak berubah), cahaya ambient dari warna dominan foto (hanya untuk produk berfoto dan berwarna), pencarian lewat tombol mengambang.
+- Tidak ada perubahan SQL.
