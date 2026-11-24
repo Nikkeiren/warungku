@@ -2,6 +2,7 @@ import { all, saveSale, uid } from '../services/db.js';
 import { CONFIG } from '../config.js';
 import { isProd, settings, bizName, ctx } from '../services/sync.js';
 import { urls } from '../services/storage.js';
+import { applyGlow } from '../utils/glow.js';
 import { rp, toInt, calc } from '../utils/money.js';
 import { $, esc, toast, icon, share } from '../utils/dom.js';
 
@@ -21,11 +22,11 @@ export async function render(root) {
   const load = async () => { prods = (await all('products')).filter(p => p.active).sort((a, b) => a.name.localeCompare(b.name)); U = isProd() ? await urls(prods.map(p => p.image_path)) : {}; };
   await load();
   root.innerHTML = `<section class="pos"><div class="catalog">
-  <input id="q" class="input" type="search" placeholder="Cari produk atau SKU" aria-label="Cari produk">
+  
   <div class="chips" id="cats"></div><div class="grid" id="grid"></div></div>
   <aside class="cart" id="cart"><div class="cart-h"><h2>Keranjang</h2><button class="btn sm" data-a="close">Tutup</button></div>
   <div id="lines"></div>
-  <div class="row2"><label>Diskon (Rp)<input id="disc" class="input" inputmode="numeric" value="0"></label><label>Catatan pesanan<input id="note" class="input" maxlength="120"></label></div>
+  <label>Catatan pesanan<input id="note" class="input" maxlength="120"></label>
   <div id="sum" class="sum"></div><div class="chips" id="meth"></div>
   <div class="calc"><div class="cd"><small id="cx"></small><output id="cv">Rp0</output></div>
   <div class="quick">${CONFIG.quickCash.map(n => `<button class="btn" data-q="${n}">${rp(n)}</button>`).join('')}<button class="btn" data-q="pas">Uang pas</button></div>
@@ -33,13 +34,19 @@ export async function render(root) {
   <button class="btn" data-k="C">C</button><button class="btn" data-k="B" aria-label="Hapus satu karakter">⌫</button></div>
   <div id="chg" class="chg"></div></div>
   <button class="btn primary lg" id="pay">Bayar</button></aside></section>
+  <div class="fab" id="fab"><button class="fk" id="fk" type="button" aria-label="Cari produk">${icon('cari')}</button><input id="q" type="search" placeholder="Cari nama atau SKU produk" aria-label="Cari produk" autocomplete="off" tabindex="-1"><button class="fx" id="fx" type="button" aria-label="Tutup pencarian" tabindex="-1">${icon('x')}</button></div>
   <button class="cartbar" id="cartbar"></button>`;
 
   const totals = () => { const sub = [...cart.values()].reduce((a, l) => a + l.p.price * l.qty, 0), d = Math.min(disc, sub), base = sub - d;
     const S = settings(), tax = Math.round(base * S.taxPct / 100), fee = cart.size ? S.fee : 0; return { sub, d, tax, fee, total: base + tax + fee }; };
   const drawGrid = () => { const f = prods.filter(p => (cat === 'Semua' || p.category === cat) && (!q || (p.name + ' ' + (p.sku || '')).toLowerCase().includes(q)));
-    $('#grid').innerHTML = f.length ? f.map(p => `<button class="pcard" data-id="${esc(p.id)}">${U[p.image_path] ? `<img src="${esc(U[p.image_path])}" alt="" loading="lazy">` : `<div class="ph" aria-hidden="true">${icon('produk')}</div>`}<b>${esc(p.name)}</b><span>${rp(p.price)} / ${esc(p.unit || 'pcs')}</span>${p.stock != null ? `<small class="${p.stock <= CONFIG.lowStock ? 'warn' : ''}">Stok ${p.stock}</small>` : ''}</button>`).join('')
-      : '<p class="empty">Produk tidak ditemukan. Tambahkan produk di menu Produk.</p>'; };
+    $('#grid').innerHTML = f.length ? f.map(p => { const n = cart.get(p.id)?.qty || 0, img = U[p.image_path];
+      return `<div class="pcard${n ? ' has' : ''}" data-id="${esc(p.id)}">${img ? `<img src="${esc(img)}" crossorigin="anonymous" alt="" loading="lazy">` : `<div class="ph" aria-hidden="true">${icon('produk')}</div>`}<b>${esc(p.name)}</b>${p.stock != null ? `<small class="${p.stock <= CONFIG.lowStock ? 'warn' : ''}">Stok ${p.stock}</small>` : ''}
+        <div class="prow"><span>${rp(p.price)} / ${esc(p.unit || 'pcs')}</span><div class="pill"><button data-a="dec" aria-label="Kurangi ${esc(p.name)}"${n ? '' : ' disabled'}>−</button><input data-a="qty" inputmode="numeric" value="${n}" aria-label="Jumlah ${esc(p.name)}"><button data-a="inc" aria-label="Tambah ${esc(p.name)}">+</button></div></div></div>`; }).join('')
+      : `<p class="empty">${q ? 'Produk tidak ditemukan.' : 'Belum ada produk aktif. Tambahkan di menu Produk.'}</p>`;
+    $('#grid').querySelectorAll('img').forEach(i => { // jika server tak mengizinkan CORS, gambar tetap tampil (tanpa cahaya)
+      i.addEventListener('error', () => { if (i.hasAttribute('crossorigin')) { i.removeAttribute('crossorigin'); i.src = i.src; } }, { once: true });
+      i.complete && i.naturalWidth ? applyGlow(i) : i.addEventListener('load', () => applyGlow(i), { once: true }); }); };
   const drawChips = () => { $('#cats').innerHTML = ['Semua', ...new Set(prods.map(p => p.category).filter(Boolean))].map(c => `<button data-cat="${esc(c)}" class="${c === cat ? 'on' : ''}">${esc(c)}</button>`).join('');
     $('#meth').innerHTML = CONFIG.payMethods.map(m => `<button data-m="${m}" class="${m === method ? 'on' : ''}">${m}</button>`).join(''); };
   const refresh = () => {
@@ -55,7 +62,7 @@ export async function render(root) {
     if (cash && t.total && recv) { const df = recv - t.total; chg.textContent = df >= 0 ? 'Kembalian ' + rp(df) : 'Kurang ' + rp(-df); chg.classList.add(df >= 0 ? 'ok' : 'low'); }
     $('#pay').disabled = saving || !cart.size || (cash && recv < t.total);
     $('#pay').textContent = cart.size ? 'Bayar ' + rp(t.total) : 'Bayar';
-    $('#cartbar').innerHTML = `${icon('kasir')}<span>${n} item</span><b>${rp(t.total)}</b>`;
+    $('#cartbar').innerHTML = `${icon('kasir')}<span>${n} item</span><b>${rp(t.total)}</b>`; syncCards();
   };
   const setQty = (id, n) => { const p = prods.find(x => x.id === id); if (!p) return;
     if (p.stock != null && n > p.stock) { toast('Stok tidak cukup'); n = p.stock; }
@@ -72,6 +79,13 @@ export async function render(root) {
   // Keranjang layar penuh (HP) ikut riwayat: Back menutupnya lebih dulu.
   const pop = () => $('#cart').classList.remove('open'); addEventListener('popstate', pop);
   const closeCart = async () => { $('#cart').classList.remove('open'); if (history.state?.cart) await new Promise(r => { addEventListener('popstate', r, { once: true }); history.back(); }); };
+  // Pencarian mengambang: tombol kaca pembesar -> kolom input; keluar membersihkan kata kunci.
+  const vv = window.visualViewport, updKb = () => $('#fab').style.setProperty('--kb', vv ? Math.max(0, innerHeight - vv.height - vv.offsetTop) + 'px' : '0px'); vv?.addEventListener('resize', updKb);
+  const openSearch = () => { $('#fab').classList.add('open'); $('#q').tabIndex = $('#fx').tabIndex = 0; $('#q').focus(); updKb(); };
+  const closeSearch = () => { $('#fab').classList.remove('open'); $('#q').value = ''; $('#q').blur(); $('#q').tabIndex = $('#fx').tabIndex = -1; if (q) { q = ''; drawGrid(); } };
+  $('#q').addEventListener('keydown', e => { if (e.key === 'Escape') closeSearch(); });
+  $('#q').addEventListener('blur', () => setTimeout(() => { if (!$('#q').value && $('#fab').classList.contains('open')) closeSearch(); }, 150));
+  const syncCards = () => root.querySelectorAll('#grid .pcard').forEach(c => { const n = cart.get(c.dataset.id)?.qty || 0; c.querySelector('input').value = n; c.classList.toggle('has', n > 0); c.querySelector('[data-a=dec]').disabled = !n; });
   root.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     const id = b.closest('[data-id]')?.dataset.id, a = b.dataset.a, D = b.dataset;
@@ -79,6 +93,7 @@ export async function render(root) {
     else if (a === 'inc') add(id, 1); else if (a === 'dec') add(id, -1); else if (a === 'rm') cart.delete(id);
     else if (a === 'close') closeCart();
     else if (b.id === 'cartbar') { history.pushState({ cart: 1 }, ''); $('#cart').classList.add('open'); }
+    else if (b.id === 'fk') openSearch(); else if (b.id === 'fx') closeSearch();
     else if (D.k) press(D.k); else if (D.q) quick(D.q);
     else if (D.cat) { cat = D.cat; drawChips(); drawGrid(); } else if (D.m) { method = D.m; drawChips(); }
     refresh();
@@ -104,7 +119,7 @@ export async function render(root) {
       note: $('#note').value.trim(), status: 'selesai', demo: !isProd(), synced: false, sync: isProd() ? 'menunggu' : 'lokal' };
     try {
       await saveSale(trx);
-      cart.clear(); disc = 0; expr = ''; draft = uid(); $('#disc').value = 0; $('#note').value = '';
+      cart.clear(); disc = 0; expr = ''; draft = uid(); $('#note').value = '';
       await load(); drawChips(); drawGrid(); await closeCart(); dispatchEvent(new Event('wk:changed')); dispatchEvent(new Event('wk:sale'));
       dlg.innerHTML = `<h3>Pembayaran berhasil</h3><pre class="rc">${esc(receiptText(trx))}</pre><small>${isProd() ? 'Tersimpan di perangkat, menunggu sinkronisasi ke server.' : 'Mode demo: tidak dikirim ke server.'}</small>
         <div class="rc-a"><button class="btn" id="rp">Cetak</button><button class="btn" id="rs">Bagikan</button><button class="btn primary" id="rx">Transaksi baru</button></div>`;
@@ -113,5 +128,5 @@ export async function render(root) {
     saving = false; refresh();
   };
   drawChips(); drawGrid(); refresh();
-  return () => { document.removeEventListener('keydown', key); removeEventListener('popstate', pop); ctx.cart = 0; };
+  return () => { document.removeEventListener('keydown', key); removeEventListener('popstate', pop); vv?.removeEventListener('resize', updKb); ctx.cart = 0; };
 }
