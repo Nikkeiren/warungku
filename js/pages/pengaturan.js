@@ -3,6 +3,7 @@ import { ctx, saveCtx } from '../services/sync.js';
 import { all } from '../services/db.js';
 import { compress, upload, drop, urls } from '../services/storage.js';
 import { FONTS, brandFont } from '../data/fonts.js';
+import { bannerHtml, bindBanner } from '../utils/banner.js';
 import { toInt } from '../utils/money.js';
 import { $, esc, toast } from '../utils/dom.js';
 
@@ -18,7 +19,7 @@ export async function render(root) {
       <label>Nomor telepon<input name="phone" class="input" maxlength="30" inputmode="tel" value="${esc(b.phone)}"></label><small style="margin-top:8px">Pemilik: ${esc(em)}</small><button class="btn primary lg" style="margin-top:12px">Simpan profil</button></form>`)
     + sec('Tampilan', `<h3>Font nama usaha</h3><div class="fonts">${[['', ''], ...FONTS].map(([n]) => `<button type="button" data-f="${esc(n)}" class="${(b.name_font || '') === n ? 'on' : ''}" style="font-family:${n ? brandFont(n) : 'inherit'}">${esc(b.name)}<small>${n || 'Font bawaan'}</small></button>`).join('')}</div>
       <small style="margin-top:6px">Hanya mengubah tulisan nama usaha di topbar. Font dimuat dari internet.</small>
-      <h3 style="margin-top:16px">Banner topbar</h3>${pick('bn', 'banner_path')}
+      <h3 style="margin-top:16px">Banner topbar</h3>${bannerHtml(b, U[b.banner_path])}
       <h3 style="margin-top:16px">Background aplikasi</h3><label>Jenis<select id="bm" class="input"><option value="default">Bawaan</option><option value="color">Warna solid</option><option value="image">Gambar dari galeri</option></select></label>
       <label>Warna solid<input id="bc" type="color" class="input" value="${b.bg_color || '#F5F3EC'}"></label>
       <label>Kekuatan overlay gambar: <span id="bov">${b.bg_overlay ?? 40}</span>%<input id="bo" type="range" min="0" max="90" value="${b.bg_overlay ?? 40}" style="width:100%"></label>
@@ -49,11 +50,11 @@ export async function render(root) {
         try { await save({ [field]: path, ...extra }); await drop([old]); $$('d').disabled = false; if (extra.bg_mode) $('#bm').value = 'image'; toast('Gambar tersimpan', 'success'); } catch (er) { await drop([path]); toast('Gagal menyimpan: ' + er.message, 'error'); $$('s').disabled = false; } };
       $$('d').onclick = async () => { if (!confirm('Hapus gambar ini?')) return; const old = b[field];
         try { await save({ [field]: null, ...(field === 'bg_path' && b.bg_mode === 'image' ? { bg_mode: 'default' } : {}) }); await drop([old]); $$('p').hidden = true; $$('d').disabled = true; if (field === 'bg_path') $('#bm').value = b.bg_mode; toast('Gambar dihapus', 'success'); } catch (er) { toast('Gagal menghapus: ' + er.message, 'error'); } }; };
-    bind('bn', 'banner_path', 1280); bind('bg', 'bg_path', 1600, { bg_mode: 'image' });
+    bindBanner(b, U[b.banner_path], save); bind('bg', 'bg_path', 1600, { bg_mode: 'image' });
     $('#bsv').onclick = async () => { const m = $('#bm').value; if (m === 'image' && !b.bg_path) return toast('Pilih dan simpan gambar background dulu', 'warning');
       try { await save({ bg_mode: m, bg_color: m === 'color' ? $('#bc').value : b.bg_color || null, bg_overlay: +$('#bo').value }); toast('Background tersimpan', 'success'); } catch (er) { toast('Gagal menyimpan background: ' + er.message, 'error'); } };
     $('#rst').onclick = async () => { if (!confirm('Reset font, banner, dan background ke bawaan?')) return; const old = [b.banner_path, b.bg_path];
-      try { await save({ name_font: '', banner_path: null, bg_mode: 'default', bg_color: null, bg_path: null, bg_overlay: 40 }); await drop(old); toast('Tampilan dikembalikan ke bawaan', 'success'); render(root); } catch (er) { toast('Gagal mereset tampilan: ' + er.message, 'error'); } };
+      try { await save({ name_font: '', banner_path: null, banner_x: 50, banner_y: 50, banner_zoom: 100, bg_mode: 'default', bg_color: null, bg_path: null, bg_overlay: 40 }); await drop(old); toast('Tampilan dikembalikan ke bawaan', 'success'); render(root); } catch (er) { toast('Gagal mereset tampilan: ' + er.message, 'error'); } };
   }
   if (adm) {
     navigator.storage?.estimate?.().then(s => { const mb = n => (n / 1048576).toFixed(1) + ' MB'; $('#su').textContent = `Penyimpanan perangkat: ${mb(s.usage || 0)} terpakai dari ${mb(s.quota || 0)}.`; }, () => { $('#su').textContent = 'Penggunaan penyimpanan tidak tersedia di perangkat ini.'; });
