@@ -38,10 +38,10 @@ export async function voidTx(t, reason) {
   if (!isProd()) return voidSale(t.id, reason);
   await sb.rpc('void_sale', { b: ctx.business.id, tid: t.id, reason }); await pull();
 }
-export async function saveProduct(rec, isNew) {
+export async function saveProduct(rec, isNew, withStock = isNew) {
   if (!isProd()) { await put('products', rec); return audit(isNew ? 'tambah_produk' : 'ubah_produk', rec.id, rec.name); }
   const { stock, ...rest } = rec, b = ctx.business.id; // stok produk lama hanya diubah lewat Inventaris
-  await sb.upsert('products', { ...(isNew ? rec : rest), business_id: b });
+  await sb.upsert('products', { ...(withStock ? rec : rest), business_id: b });
   await sb.upsert('audit_log', { business_id: b, action: isNew ? 'tambah_produk' : 'ubah_produk', ref: rec.id, detail: rec.name }); await pull();
 }
 export async function removeProduct(p) {
