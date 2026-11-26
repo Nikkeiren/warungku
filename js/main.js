@@ -4,6 +4,7 @@ import { seedDemo } from './data/demo.js';
 import * as sb from './services/supabase.js';
 import { urls } from './services/storage.js';
 import { brandFont } from './data/fonts.js';
+import { bannerCss } from './utils/banner.js';
 import { PAGES, TABS, can } from './data/menu.js';
 import { ctx, isProd, syncNow, saveCtx } from './services/sync.js';
 import { renderAuth, renderBusiness } from './pages/auth.js';
@@ -18,7 +19,8 @@ async function brand() {
   const b = isProd() ? ctx.business : null, top = $('#top'), el = $('#brand'), R = document.documentElement.style;
   el.textContent = b?.name || 'Warungku'; el.style.fontFamily = b?.name_font ? brandFont(b.name_font) : '';
   const bn = b?.banner_path, bg = b?.bg_mode === 'image' ? b.bg_path : null, U = await urls([bn, bg]);
-  top.classList.toggle('has-banner', !!U[bn]); top.style.backgroundImage = U[bn] ? `linear-gradient(rgba(20,92,69,.5),rgba(20,92,69,.5)),url("${U[bn]}")` : '';
+  top.classList.toggle('has-banner', !!U[bn]); top.style.backgroundImage = ''; let im = top.querySelector('.bn');
+  if (U[bn]) { if (!im) { im = new Image(); im.className = 'bn'; im.alt = ''; im.draggable = false; top.prepend(im); } if (im.getAttribute('src') !== U[bn]) im.src = U[bn]; Object.assign(im.style, bannerCss(b)); } else im?.remove();
   R.removeProperty('--bg'); R.removeProperty('--bgl');
   if (b?.bg_mode === 'color' && b.bg_color) R.setProperty('--bg', b.bg_color);
   if (U[bg]) { const a = (b.bg_overlay ?? 40) / 100; R.setProperty('--bgl', `linear-gradient(rgba(245,243,236,${a}),rgba(245,243,236,${a})),url("${U[bg]}")`); }
@@ -79,5 +81,9 @@ async function enterProd() {
     if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8 || st.el.closest?.('.chips,.quick,.tw,input[type=range],dialog,.cart.open')) return;
     if (!closed && dx < 0 && st.x < W + 60) set(false); else if (closed && dx > 0 && st.x < 140) set(true); }, { passive: true });
 })();
+// Rasa aplikasi: tanpa menu salin/konteks dan seleksi teks pada UI (input dan textarea tetap normal).
+const editable = t => !!t?.closest?.('input,textarea,select,[contenteditable="true"]');
+document.addEventListener('contextmenu', e => { if (!editable(e.target)) e.preventDefault(); });
+document.addEventListener('selectstart', e => { if (!editable(e.target?.nodeType === 3 ? e.target.parentElement : e.target)) e.preventDefault(); });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 (async () => { if (sb.configured() && sb.session()) { try { return await enterProd(); } catch (e) { console.error(e); } } showAuth(); })();
