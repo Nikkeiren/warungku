@@ -8,9 +8,9 @@ import { $, esc, toast, icon, share } from '../utils/dom.js';
 
 export const receiptText = t => [bizName() + (t.demo ? ' (DEMO)' : ''), t.no, new Date(t.at).toLocaleString('id-ID'),
   t.status !== 'selesai' ? 'STATUS: ' + t.status.toUpperCase() : null, '',
-  ...t.items.map(i => \`\${i.name}\n  \${i.qty} x \${rp(i.price)} = \${rp(i.qty * i.price)}\`), '',
-  \`Subtotal  \${rp(t.subtotal)}\`, t.discount ? \`Diskon    -\${rp(t.discount)}\` : null, t.tax ? \`Pajak     \${rp(t.tax)}\` : null, t.fee ? \`Layanan   \${rp(t.fee)}\` : null,
-  \`TOTAL     \${rp(t.total)}\`, \`\${t.method}  \${rp(t.paid)}\`, \`Kembali   \${rp(t.change)}\`, t.note ? 'Catatan: ' + t.note : null].filter(x => x !== null).join('\n');
+  ...t.items.map(i => `${i.name}\n  ${i.qty} x ${rp(i.price)} = ${rp(i.qty * i.price)}`), '',
+  `Subtotal  ${rp(t.subtotal)}`, t.discount ? `Diskon    -${rp(t.discount)}` : null, t.tax ? `Pajak     ${rp(t.tax)}` : null, t.fee ? `Layanan   ${rp(t.fee)}` : null,
+  `TOTAL     ${rp(t.total)}`, `${t.method}  ${rp(t.paid)}`, `Kembali   ${rp(t.change)}`, t.note ? 'Catatan: ' + t.note : null].filter(x => x !== null).join('\n');
 
 const KEYS = [['7', '7'], ['8', '8'], ['9', '9'], ['÷', '÷'], ['4', '4'], ['5', '5'], ['6', '6'], ['×', '×'], ['1', '1'], ['2', '2'], ['3', '3'], ['−', '-'], ['0', '0'], ['000', '000'], ['+', '+'], ['=', '=']];
 const OPS = /[+\-×÷]/;
@@ -21,7 +21,7 @@ export async function render(root) {
   let U = {}, prods = [], cart = new Map(), disc = 0, method = CONFIG.payMethods[0], expr = '', cat = 'Semua', q = '', saving = false, draft = uid();
   const load = async () => { prods = (await all('products')).filter(p => p.active).sort((a, b) => a.name.localeCompare(b.name)); U = isProd() ? await urls(prods.map(p => p.image_path)) : {}; };
   await load();
-  root.innerHTML = \`<section class="pos"><div class="catalog">
+  root.innerHTML = `<section class="pos"><div class="catalog">
   
   <div class="chips" id="cats"></div><div class="grid" id="grid"></div></div>
   <aside class="cart" id="cart"><div class="cart-h"><h2>Keranjang</h2><button class="btn sm" data-a="close">Tutup</button></div>
@@ -29,32 +29,32 @@ export async function render(root) {
   <label>Catatan pesanan<input id="note" class="input" maxlength="120"></label>
   <div id="sum" class="sum"></div><div class="chips" id="meth"></div>
   <div class="calc"><div class="cd"><small id="cx"></small><output id="cv">Rp0</output></div>
-  <div class="quick">\${CONFIG.quickCash.map(n => \`<button class="btn" data-q="\${n}">\${rp(n)}</button>\`).join('')}<button class="btn" data-q="pas">Uang pas</button></div>
-  <div class="keys">\${KEYS.map(([l, k]) => \`<button class="btn \${OPS.test(k) || k === '=' ? 'op' : ''}" data-k="\${k}">\${l}</button>\`).join('')}
+  <div class="quick">${CONFIG.quickCash.map(n => `<button class="btn" data-q="${n}">${rp(n)}</button>`).join('')}<button class="btn" data-q="pas">Uang pas</button></div>
+  <div class="keys">${KEYS.map(([l, k]) => `<button class="btn ${OPS.test(k) || k === '=' ? 'op' : ''}" data-k="${k}">${l}</button>`).join('')}
   <button class="btn" data-k="C">C</button><button class="btn" data-k="B" aria-label="Hapus satu karakter">⌫</button></div>
   <div id="chg" class="chg"></div></div>
   <button class="btn primary lg" id="pay">Bayar</button></aside></section>
-  <div class="fab" id="fab"><button class="fk" id="fk" type="button" aria-label="Cari produk">\${icon('cari')}</button><input id="q" type="search" placeholder="Cari nama atau SKU produk" aria-label="Cari produk" autocomplete="off" tabindex="-1"><button class="fx" id="fx" type="button" aria-label="Tutup pencarian" tabindex="-1">\${icon('x')}</button></div>
-  <button class="cartbar" id="cartbar"></button>\`;
+  <div class="fab" id="fab"><button class="fk" id="fk" type="button" aria-label="Cari produk">${icon('cari')}</button><input id="q" type="search" placeholder="Cari nama atau SKU produk" aria-label="Cari produk" autocomplete="off" tabindex="-1"><button class="fx" id="fx" type="button" aria-label="Tutup pencarian" tabindex="-1">${icon('x')}</button></div>
+  <button class="cartbar" id="cartbar"></button>`;
 
   const totals = () => { const sub = [...cart.values()].reduce((a, l) => a + l.p.price * l.qty, 0), d = Math.min(disc, sub), base = sub - d;
     const S = settings(), tax = Math.round(base * S.taxPct / 100), fee = cart.size ? S.fee : 0; return { sub, d, tax, fee, total: base + tax + fee }; };
   const drawGrid = () => { const f = prods.filter(p => (cat === 'Semua' || p.category === cat) && (!q || (p.name + ' ' + (p.sku || '')).toLowerCase().includes(q)));
     $('#grid').innerHTML = f.length ? f.map(p => { const n = cart.get(p.id)?.qty || 0, img = U[p.image_path];
-      return \`<div class="pcard\${n ? ' has' : ''}" data-id="\${esc(p.id)}">\${img ? \`<img src="\${esc(img)}" crossorigin="anonymous" alt="" loading="lazy">\` : \`<div class="ph" aria-hidden="true">\${icon('produk')}</div>\`}<b>\${esc(p.name)}</b>\${p.stock != null ? \`<small class="\${p.stock <= CONFIG.lowStock ? 'warn' : ''}">Stok \${p.stock}</small>\` : ''}
-        <div class="prow"><span>\${rp(p.price)} / \${esc(p.unit || 'pcs')}</span><div class="pill"><button data-a="dec" aria-label="Kurangi \${esc(p.name)}"\${n ? '' : ' disabled'}>−</button><input data-a="qty" inputmode="numeric" value="\${n}" aria-label="Jumlah \${esc(p.name)}"><button data-a="inc" aria-label="Tambah \${esc(p.name)}">+</button></div></div></div>\`; }).join('')
-      : \`<p class="empty">\${q ? 'Produk tidak ditemukan.' : 'Belum ada produk aktif. Tambahkan di menu Produk.'}</p>\`;
+      return `<div class="pcard${n ? ' has' : ''}" data-id="${esc(p.id)}">${img ? `<img src="${esc(img)}" crossorigin="anonymous" alt="" loading="lazy">` : `<div class="ph" aria-hidden="true">${icon('produk')}</div>`}<b>${esc(p.name)}</b>${p.stock != null ? `<small class="${p.stock <= CONFIG.lowStock ? 'warn' : ''}">Stok ${p.stock}</small>` : ''}
+        <div class="prow"><span>${rp(p.price)} / ${esc(p.unit || 'pcs')}</span><div class="pill"><button data-a="dec" aria-label="Kurangi ${esc(p.name)}"${n ? '' : ' disabled'}>−</button><input data-a="qty" inputmode="numeric" value="${n}" aria-label="Jumlah ${esc(p.name)}"><button data-a="inc" aria-label="Tambah ${esc(p.name)}">+</button></div></div></div>`; }).join('')
+      : `<p class="empty">${q ? 'Produk tidak ditemukan.' : 'Belum ada produk aktif. Tambahkan di menu Produk.'}</p>`;
     $('#grid').querySelectorAll('img').forEach(i => { // jika server tak mengizinkan CORS, gambar tetap tampil (tanpa cahaya)
       i.addEventListener('error', () => { if (i.hasAttribute('crossorigin')) { i.removeAttribute('crossorigin'); i.src = i.src; } }, { once: true });
       i.complete && i.naturalWidth ? applyGlow(i) : i.addEventListener('load', () => applyGlow(i), { once: true }); }); };
-  const drawChips = () => { $('#cats').innerHTML = ['Semua', ...new Set(prods.map(p => p.category).filter(Boolean))].map(c => \`<button data-cat="\${esc(c)}" class="\${c === cat ? 'on' : ''}">\${esc(c)}</button>\`).join('');
-    $('#meth').innerHTML = CONFIG.payMethods.map(m => \`<button data-m="\${m}" class="\${m === method ? 'on' : ''}">\${m}</button>\`).join(''); };
+  const drawChips = () => { $('#cats').innerHTML = ['Semua', ...new Set(prods.map(p => p.category).filter(Boolean))].map(c => `<button data-cat="${esc(c)}" class="${c === cat ? 'on' : ''}">${esc(c)}</button>`).join('');
+    $('#meth').innerHTML = CONFIG.payMethods.map(m => `<button data-m="${m}" class="${m === method ? 'on' : ''}">${m}</button>`).join(''); };
   const refresh = () => {
     const t = totals(), n = [...cart.values()].reduce((a, l) => a + l.qty, 0), recv = calc(expr), cash = method === 'Tunai'; ctx.cart = n;
-    $('#lines').innerHTML = cart.size ? [...cart.values()].map(l => \`<div class="line" data-id="\${esc(l.p.id)}"><div><b>\${esc(l.p.name)}</b><small>\${rp(l.p.price)}</small></div>
-      <div class="qty"><button data-a="dec" aria-label="Kurangi">−</button><input data-a="qty" inputmode="numeric" value="\${l.qty}" aria-label="Jumlah"><button data-a="inc" aria-label="Tambah">+</button></div>
-      <button class="x" data-a="rm" aria-label="Hapus">\${icon('x')}</button><b class="sub">\${rp(l.p.price * l.qty)}</b></div>\`).join('') : '<p class="empty">Keranjang kosong. Pilih produk untuk memulai.</p>';
-    const row = (l, v, c = '') => \`<div class="\${c}"><span>\${l}</span><span>\${v}</span></div>\`;
+    $('#lines').innerHTML = cart.size ? [...cart.values()].map(l => `<div class="line" data-id="${esc(l.p.id)}"><div><b>${esc(l.p.name)}</b><small>${rp(l.p.price)}</small></div>
+      <div class="qty"><button data-a="dec" aria-label="Kurangi">−</button><input data-a="qty" inputmode="numeric" value="${l.qty}" aria-label="Jumlah"><button data-a="inc" aria-label="Tambah">+</button></div>
+      <button class="x" data-a="rm" aria-label="Hapus">${icon('x')}</button><b class="sub">${rp(l.p.price * l.qty)}</b></div>`).join('') : '<p class="empty">Keranjang kosong. Pilih produk untuk memulai.</p>';
+    const row = (l, v, c = '') => `<div class="${c}"><span>${l}</span><span>${v}</span></div>`;
     $('#sum').innerHTML = row('Subtotal', rp(t.sub)) + (t.d ? row('Diskon', '-' + rp(t.d)) : '') + (t.tax ? row('Pajak ' + settings().taxPct + '%', rp(t.tax)) : '') + (t.fee ? row('Biaya layanan', rp(t.fee)) : '') + row('Total', rp(t.total), 'tot');
     $('#cx').textContent = expr ? expr.replace(/\d+/g, m => (+m).toLocaleString('id-ID')) : 'Ketik nominal uang diterima';
     $('#cv').textContent = rp(recv);
@@ -62,7 +62,7 @@ export async function render(root) {
     if (cash && t.total && recv) { const df = recv - t.total; chg.textContent = df >= 0 ? 'Kembalian ' + rp(df) : 'Kurang ' + rp(-df); chg.classList.add(df >= 0 ? 'ok' : 'low'); }
     $('#pay').disabled = saving || !cart.size || (cash && recv < t.total);
     $('#pay').textContent = cart.size ? 'Bayar ' + rp(t.total) : 'Bayar';
-    $('#cartbar').innerHTML = \`\${icon('kasir')}<span>\${n} item</span><b>\${rp(t.total)}</b>\`; syncCards();
+    $('#cartbar').innerHTML = `${icon('kasir')}<span>${n} item</span><b>${rp(t.total)}</b>`; syncCards();
   };
   const setQty = (id, n) => { const p = prods.find(x => x.id === id); if (!p) return;
     if (p.stock != null && n > p.stock) { toast('Stok tidak cukup'); n = p.stock; }
@@ -113,7 +113,7 @@ export async function render(root) {
     if (recv < t.total) return toast('Uang diterima kurang');
     saving = true; refresh();
     const d = new Date(), ymd = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
-    const trx = { id: draft, no: \`WRG-\${ymd}-\${draft.slice(0, 6).toUpperCase()}\`, at: Date.now(),
+    const trx = { id: draft, no: `WRG-${ymd}-${draft.slice(0, 6).toUpperCase()}`, at: Date.now(),
       items: [...cart.values()].map(l => ({ productId: l.p.id, name: l.p.name, price: l.p.price, cost: l.p.cost, qty: l.qty, unit: l.p.unit })),
       subtotal: t.sub, discount: t.d, tax: t.tax, fee: t.fee, total: t.total, method, paid: recv, change: recv - t.total,
       note: $('#note').value.trim(), status: 'selesai', demo: !isProd(), synced: false, sync: isProd() ? 'menunggu' : 'lokal' };
@@ -121,8 +121,8 @@ export async function render(root) {
       await saveSale(trx);
       cart.clear(); disc = 0; expr = ''; draft = uid(); $('#note').value = '';
       await load(); drawChips(); drawGrid(); await closeCart(); dispatchEvent(new Event('wk:changed')); dispatchEvent(new Event('wk:sale'));
-      dlg.innerHTML = \`<h3>Pembayaran berhasil</h3><pre class="rc">\${esc(receiptText(trx))}</pre><small>\${isProd() ? 'Tersimpan di perangkat, menunggu sinkronisasi ke server.' : 'Mode demo: tidak dikirim ke server.'}</small>
-        <div class="rc-a"><button class="btn" id="rp">Cetak</button><button class="btn" id="rs">Bagikan</button><button class="btn primary" id="rx">Transaksi baru</button></div>\`;
+      dlg.innerHTML = `<h3>Pembayaran berhasil</h3><pre class="rc">${esc(receiptText(trx))}</pre><small>${isProd() ? 'Tersimpan di perangkat, menunggu sinkronisasi ke server.' : 'Mode demo: tidak dikirim ke server.'}</small>
+        <div class="rc-a"><button class="btn" id="rp">Cetak</button><button class="btn" id="rs">Bagikan</button><button class="btn primary" id="rx">Transaksi baru</button></div>`;
       dlg.showModal(); toast('Pembayaran berhasil. Transaksi disimpan.', 'success'); $('#rp').onclick = () => print(); $('#rs').onclick = () => share(receiptText(trx), trx.no); $('#rx').onclick = () => dlg.close();
     } catch (err) { console.error(err); toast('Gagal menyimpan transaksi. Coba lagi.'); }
     saving = false; refresh();
