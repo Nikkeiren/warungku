@@ -1,5 +1,5 @@
 import { all, uid } from '../services/db.js';
-import { saveProduct, removeProduct, isProd, ctx } from '../services/sync.js';
+import { saveProduct, removeProduct, adjustStock, isProd, ctx } from '../services/sync.js';
 import { compress, upload, drop, urls } from '../services/storage.js';
 import { rp, toInt } from '../utils/money.js';
 import { $, esc, toast, icon } from '../utils/dom.js';
@@ -24,7 +24,7 @@ export async function render(root) {
       <label>Nama produk<input name="name" class="input" required maxlength="80" value="${esc(p.name)}"></label>
       <div class="row2"><label>SKU / kode<input name="sku" class="input" maxlength="40" value="${esc(p.sku)}"></label><label>Kategori<input name="category" class="input" maxlength="40" value="${esc(p.category)}"></label></div>
       <div class="row2"><label>Harga modal (Rp)<input name="cost" class="input" inputmode="numeric" value="${p.cost || 0}"></label><label>Harga jual (Rp)<input name="price" class="input" inputmode="numeric" required value="${p.price ?? ''}"></label></div>
-      <div class="row2"><label>Satuan<input name="unit" class="input" maxlength="20" value="${esc(p.unit)}"></label><label>Stok (kosong = tidak dilacak)<input name="stock" class="input" inputmode="numeric" value="${p.stock ?? ''}" ${!isNew && isProd() ? 'readonly title="Ubah stok lewat menu Inventaris"' : ''}></label></div>
+      <div class="row2"><label>Satuan<input name="unit" class="input" maxlength="20" value="${esc(p.unit)}"></label><label>Stok (kosong = tidak dilacak)<input name="stock" class="input" inputmode="numeric" value="${p.stock ?? ''}" pattern="[0-9]*" enterkeyhint="done" autocomplete="off"></label></div>
       <label class="chk"><input type="checkbox" name="active" ${p.active ? 'checked' : ''}>Aktif dijual</label>
       <div class="rc-a"><button class="btn" value="cancel" formnovalidate>Batal</button><button class="btn primary" value="ok">Simpan</button></div></form>`;
     dlg.showModal();
@@ -34,9 +34,10 @@ export async function render(root) {
     $('#f').onsubmit = async e => { e.preventDefault(); if (e.submitter?.value === 'cancel') return dlg.close();
       e.submitter.disabled = true; let up = null, path = p.image_path || null;
       try { if (blob) path = up = await upload(ctx.business.id, 'products', blob); else if (rm) path = null; // unggah dulu; gambar lama dihapus hanya setelah simpan berhasil
-        const v = Object.fromEntries(new FormData(e.target));
+        const v = Object.fromEntries(new FormData(e.target)), ns = v.stock.trim() === '' ? null : toInt(v.stock), first = isNew || p.stock == null;
         await saveProduct({ ...p, name: v.name.trim(), sku: v.sku.trim(), category: v.category.trim(), unit: v.unit.trim() || 'pcs', cost: toInt(v.cost), price: toInt(v.price),
-          stock: v.stock.trim() === '' ? null : toInt(v.stock), active: 'active' in v, image_path: path }, isNew);
+          stock: first ? ns : p.stock, active: 'active' in v, image_path: path }, isNew, first);
+        if (!first && ns != null && ns !== p.stock) await adjustStock(p.id, 'set', ns, 'Diubah dari formulir produk');
         if (p.image_path && p.image_path !== path) await drop([p.image_path]);
         toast(isNew ? 'Produk berhasil ditambahkan' : 'Produk berhasil diperbarui', 'success'); dlg.close(); draw();
       } catch (er) { if (up) await drop([up]); toast('Gagal menyimpan produk: ' + er.message, 'error'); e.submitter.disabled = false; } }; };
