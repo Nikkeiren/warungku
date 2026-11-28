@@ -7,7 +7,7 @@ import { brandFont } from './data/fonts.js';
 import { bannerCss } from './utils/banner.js';
 import { PAGES, TABS, can } from './data/menu.js';
 import { ctx, isProd, syncNow, saveCtx } from './services/sync.js';
-import { renderAuth, renderBusiness } from './pages/auth.js';
+import { renderAuth, renderBusiness, renderBusinessPicker } from './pages/auth.js';
 
 const dlg = $('#dlg'), sm = dlg.showModal.bind(dlg);
 let cleanup, seq = 0, started = false, exiting = false, viaPop = false, lastBad = 0, lastOk = 0;
@@ -58,13 +58,44 @@ async function enterDemo() {
   Object.assign(ctx, { mode: 'demo', business: null, role: 'owner' }); setDb('warungku-demo'); $('#demo-banner').hidden = false; brand();
   try { await seedDemo(); } catch (e) { console.error(e); } start();
 }
+async function applyProdContext(m) {
+  Object.assign(ctx, { mode: 'prod', business: m.businesses, role: m.role });
+  localStorage.setItem('warungku.active', m.businesses.id); saveCtx();
+  setDb('warungku-' + ctx.business.id); $('#demo-banner').hidden = true;
+  await brand(); await syncNow(); start();
+}
 async function enterProd() {
-  let m; try { const rows = await sb.select('memberships', `select=role,businesses(*)&user_id=eq.${sb.session().user.id}`);
-    if (!rows.length) return renderBusiness($('#app'), { onDone: enterProd, onOut: () => { sb.signOut(); location.reload(); } });
-    m = rows.find(r => r.businesses.id === localStorage.getItem('warungku.active')) || rows[0]; }
-  catch (e) { const c = e.offline && JSON.parse(localStorage.getItem('warungku.ctx') || 'null'); if (!c) throw e; m = { role: c.role, businesses: c.business }; }
-  Object.assign(ctx, { mode: 'prod', business: m.businesses, role: m.role }); localStorage.setItem('warungku.active', m.businesses.id); saveCtx();
-  setDb('warungku-' + ctx.business.id); $('#demo-banner').hidden = true; brand(); await syncNow(); start();
+  let rows;
+  try {
+    rows = await sb.myMemberships();
+  } catch (e) {
+    // Saat offline, gunakan konteks terakhir yang tersimpan agar mode offline tetap bisa dibuka.
+    const c = e.offline && JSON.parse(localStorage.getItem('warungku.ctx') || 'null');
+    if (c?.business?.id && c?.role) {
+      return applyProdContext({ role: c.role, businesses: c.business });
+    }
+    throw e;
+  }
+  const valid = (Array.isArray(rows) ? rows : []).filter(r =>
+    r && r.businesses && typeof r.businesses === 'object' && r.businesses.id
+  );
+  if (rows.length && !valid.length) {
+    throw new Error('Data keanggotaan usaha tidak dapat dibaca. Minta owner memeriksa akses akun ini.');
+  }
+  if (!valid.length) {
+    return renderBusiness($('#app'), {
+      onDone: enterProd,
+      onOut: () => { sb.signOut(); location.reload(); }
+    });
+  }
+  const activeId = localStorage.getItem('warungku.active');
+  const active = valid.find(r => r.businesses.id === activeId);
+  if (active) return applyProdContext(active);
+  if (valid.length === 1) return applyProdContext(valid[0]);
+  renderBusinessPicker($('#app'), valid, {
+    onSelect: m => applyProdContext(m).catch(e => toast('Gagal membuka usaha: ' + e.message, 'error')),
+    onOut: () => { sb.signOut(); location.reload(); }
+  });
 }
 // Sidebar landscape (html.ls = landscape dan tinggi <= 600px): geser ke kiri untuk menutup, geser ke kanan dari sisi kiri untuk membuka.
 // Hanya membaca touchstart/touchend (pasif), sehingga tidak pernah menahan scroll. Chips, tabel, slider, dialog, dan keranjang dikecualikan.
@@ -86,4 +117,4 @@ const editable = t => !!t?.closest?.('input,textarea,select,[contenteditable="tr
 document.addEventListener('contextmenu', e => { if (!editable(e.target)) e.preventDefault(); });
 document.addEventListener('selectstart', e => { if (!editable(e.target?.nodeType === 3 ? e.target.parentElement : e.target)) e.preventDefault(); });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
-(async () => { if (sb.configured() && sb.session()) { try { return await enterProd(); } catch (e) { console.error(e); } } showAuth(); })();
+(async () => { if (sb.configured() && sb.session()) { try { return await enterProd(); } catch (e) { console.error(e); toast('Gagal memuat akses usaha: ' + e.message, 'error'); } } showAuth(); })();
