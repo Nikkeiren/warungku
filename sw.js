@@ -1,5 +1,5 @@
 // Cache-first untuk aset aplikasi. Panggilan Supabase tidak di-cache. Naikkan V setiap rilis.
-const V = 'warungku-v11';
+const V = 'warungku-v12';
 const A = ['./', 'index.html', 'env.js', 'manifest.webmanifest', 'icons/icon.svg', 'css/styles.css', 'js/main.js', 'js/config.js',
   'js/utils/money.js', 'js/utils/dom.js', 'js/services/db.js', 'js/services/supabase.js', 'js/services/sync.js', 'js/data/demo.js',
   'js/pages/auth.js', 'js/pages/kasir.js', 'js/pages/produk.js', 'js/pages/transaksi.js', 'js/pages/dashboard.js', 'js/pages/inventaris.js', 'js/pages/pengaturan.js', 'js/pages/pengguna.js', 'js/pages/laporan.js', 'js/pages/pengeluaran.js', 'js/pages/lainnya.js', 'js/services/storage.js', 'js/data/fonts.js', 'js/data/menu.js', 'js/utils/glow.js', 'js/utils/banner.js', 'js/utils/business-archive.js'];
