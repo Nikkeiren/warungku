@@ -6,6 +6,7 @@ import { FONTS, brandFont } from '../data/fonts.js';
 import { bannerHtml, bindBanner } from '../utils/banner.js';
 import { toInt } from '../utils/money.js';
 import { $, esc, toast, bindPasswordToggles } from '../utils/dom.js';
+import { renderArchivedBusinesses } from '../utils/business-archive.js';
 
 export const title = 'Pengaturan';
 export async function render(root) {
@@ -27,7 +28,8 @@ export async function render(root) {
       <button class="btn danger lg" type="button" id="rst" style="margin-top:16px">Reset tampilan ke bawaan</button>`)
     + sec('Kasir', `<form id="kf"><div class="row2"><label>Pajak (%)<input name="tax" class="input" inputmode="numeric" value="${b.tax_pct}"></label><label>Biaya layanan (Rp)<input name="fee" class="input" inputmode="numeric" value="${b.service_fee}"></label></div>
       <small style="margin-top:8px">Berlaku untuk transaksi berikutnya. Kembalian dihitung otomatis di kasir.</small><button class="btn primary lg" style="margin-top:12px">Simpan pengaturan kasir</button></form>`)
-    + sec('Pengguna dan akses', '<p>Kelola kasir dan admin usaha.</p><a class="btn lg" href="#pengguna">Buka daftar pengguna</a>') : '')
+    + sec('Pengguna dan akses', '<p>Kelola kasir dan admin usaha.</p><a class="btn lg" href="#pengguna">Buka daftar pengguna</a>')
+    + sec('Pengelolaan usaha', '<p>Arsipkan usaha untuk menyembunyikannya sementara. Usaha yang diarsipkan bisa dipulihkan atau dihapus permanen.</p><button class="btn danger lg" id="archive-current" type="button">Arsipkan usaha ini</button><h3 style="margin-top:18px">Usaha yang diarsipkan</h3><div id="archived-businesses"><p class="muted">Memuat arsip…</p></div>') : '')
     + sec('Akun dan keamanan', `<p>Email: <b>${esc(em)}</b></p><form id="af"><label>Kata sandi baru (minimal 8 karakter)<span class="pw-wrap"><input name="pw" type="password" class="input" minlength="8" required autocomplete="new-password"><button class="pw-toggle" type="button" data-password-toggle aria-label="Tampilkan kata sandi" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"/><circle cx="12" cy="12" r="3"/></svg></button></span></label>
       <button class="btn primary lg" style="margin-top:12px">Ubah kata sandi</button></form><button class="btn lg" id="so" style="margin-top:8px">Keluar dari akun</button>`)
     + (adm ? sec('Penyimpanan dan data', '<p id="su">Menghitung penggunaan penyimpanan…</p><button class="btn lg" id="ex">Ekspor data (JSON)</button><small style="margin-top:8px">Ekspor berasal dari data di perangkat ini. Pemulihan data belum tersedia.</small>') : '');
@@ -40,6 +42,13 @@ export async function render(root) {
   form('af', async v => { await sb.setPassword(v.pw); $('#af').reset(); }, 'Kata sandi berhasil diubah');
   $('#so').onclick = () => { if (confirm('Keluar dari akun? Transaksi yang belum tersinkron tetap tersimpan di perangkat ini.')) { sb.signOut(); location.hash = ''; location.reload(); } };
   if (own) {
+    renderArchivedBusinesses($('#archived-businesses'), () => render(root));
+    $('#archive-current').onclick = async () => {
+      if (!confirm('Arsipkan usaha ini? Usaha tidak akan tampil di daftar aktif. Data tetap tersimpan dan dapat dipulihkan.')) return;
+      const btn = $('#archive-current'); btn.disabled = true;
+      try { await sb.archiveBusiness(b.id); localStorage.removeItem('warungku.ctx'); localStorage.removeItem('warungku.active'); location.hash = ''; location.reload(); }
+      catch (er) { toast('Gagal mengarsipkan usaha: ' + er.message, 'error'); btn.disabled = false; }
+    };
     $('#bm').value = b.bg_mode || 'default'; $('#bo').oninput = e => $('#bov').textContent = e.target.value;
     root.querySelector('.fonts').onclick = async e => { const f = e.target.closest('[data-f]'); if (!f) return;
       try { await save({ name_font: f.dataset.f }); root.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x === f)); toast('Font nama usaha diperbarui', 'success'); } catch (er) { toast('Gagal menyimpan font: ' + er.message, 'error'); } };
