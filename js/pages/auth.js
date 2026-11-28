@@ -1,5 +1,6 @@
 import * as sb from '../services/supabase.js';
 import { $, esc, bindPasswordToggles } from '../utils/dom.js';
+import { renderArchivedBusinesses } from '../utils/business-archive.js';
 
 export function renderAuth(root, { onAuthed, onDemo }) {
   let mode = 'masuk', info = '';
@@ -30,7 +31,9 @@ export function renderBusiness(root, { onDone, onOut }) {
     <small>Jika kamu karyawan, admin, atau kasir, minta owner menambahkan email akun ini melalui menu Pengguna. Buat usaha hanya jika kamu pemilik usaha.</small>
     <form id="bf"><label>Nama usaha<input name="n" class="input" required maxlength="80"></label>
     <p id="msg" class="warnbox" hidden></p><button class="btn primary lg" style="margin-top:12px">Buat usaha</button></form>
+    <section class="panel" style="margin-top:18px;text-align:left"><h2>Usaha yang diarsipkan</h2><div id="archived-businesses"><p class="muted">Memuat arsip…</p></div></section>
     <button class="btn lg" id="out" style="margin-top:8px">Keluar</button></div>`;
+  renderArchivedBusinesses($('#archived-businesses'), () => location.reload());
   $('#out').onclick = onOut;
   $('#bf').onsubmit = async e => { e.preventDefault(); const b = e.submitter, msg = $('#msg'); b.disabled = true;
     try { await sb.rpc('create_business', { p_name: new FormData(e.target).get('n') }); onDone(); }
