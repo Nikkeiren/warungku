@@ -152,3 +152,12 @@ input,select,textarea,.input{font-size:var(--fs-md)}
 .x{display:flex;align-items:center;justify-content:center;width:var(--tap);height:var(--tap);padding:0}
 /* Pencarian mengambang: elemen input/tutup benar-benar disembunyikan saat tertutup (bukan hanya transparan) */
 .fab input,.fab .fx{visibility:hidden;transition:opacity .2s,visibility 0s .25s}.fab.open input,.fab.open .fx{visibility:visible;transition-delay:0s}
+/* Empty state kasir: pusatkan pesan dan jaga kontras di atas background foto */
+.catalog #grid:has(> .empty){min-height:clamp(280px,48svh,520px);display:flex;align-items:center;justify-content:center}
+.catalog #grid>.empty{width:min(100%,360px);margin:0 auto;padding:20px 22px;border:1px solid rgba(32,41,35,.12);border-radius:16px;background:rgba(255,255,255,.94);color:#202923;text-align:center;line-height:1.55;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 28px rgba(0,0,0,.10)}
+/* Password visibility toggle */
+.pw-wrap{position:relative;display:block;margin-top:4px}
+.pw-wrap .input{margin-top:0;padding-right:52px}
+.pw-toggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:0;border-radius:10px;background:transparent;color:var(--mut);cursor:pointer}
+.pw-toggle svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pw-toggle:focus-visible{outline:2px solid var(--pri);outline-offset:-2px}
