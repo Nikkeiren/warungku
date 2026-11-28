@@ -7,7 +7,7 @@ import { $, esc, toast, icon } from '../utils/dom.js';
 export const title = 'Produk';
 export async function render(root) {
   const dlg = $('#dlg');
-  root.innerHTML = `<div class="page-h"><h1>Produk</h1><button class="btn primary" id="add">${icon('plus')}Tambah produk</button></div><div id="list" class="list"></div>`;
+  root.innerHTML = `<div id="list" class="list produk-list"></div><button class="produk-fab btn primary" id="add" aria-label="Tambah produk">${icon('plus')}<span>Tambah produk</span></button>`;
   let ps = [];
   const draw = async () => { ps = (await all('products')).sort((a, b) => a.name.localeCompare(b.name));
     const U = isProd() ? await urls(ps.map(p => p.image_path)) : {};
