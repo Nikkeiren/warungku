@@ -244,3 +244,131 @@ dialog::backdrop{background:rgba(17,27,22,.48);backdrop-filter:blur(3px)}
 @media(prefers-reduced-motion:reduce){
   .btn,.input,.pcard,.item,.panel,.stat,.menu a,.fonts button,.chips button,.nav a{transition:none!important}
 }
+
+/* ===== UI/UX refinement: safe overrides, audited against current markup ===== */
+:root{
+  --ok:#2F6B4F;
+  --ok-soft:#E3F0E8;
+  --info:#2E5F78;
+  --info-soft:#E4EEF4;
+  --warn-soft:#FBF0DC;
+  --bad-soft:#F8E4E1;
+  --surface-soft:rgba(255,255,255,.94);
+  --surface-glass:rgba(255,255,255,.88);
+  --focus-ring:rgba(var(--pri-rgb),.28);
+}
+
+/* Comfortable touch targets without changing the product-card layout model. */
+.qty button{
+  width:44px;
+  height:44px;
+  min-width:44px;
+  min-height:44px;
+}
+.qty input{height:44px;min-height:44px}
+.pill button{
+  flex:0 0 40px;
+  width:40px;
+  height:44px;
+  min-height:44px;
+}
+.pill input{height:44px;min-height:44px}
+.pw-toggle{width:44px;height:44px;min-width:44px;min-height:44px}
+.x{width:44px;height:44px;min-width:44px;min-height:44px;padding:0}
+
+/* Keep product photos and cards calm; leave applyGlow in place for safe rollback. */
+.pcard.glow{
+  border-color:var(--line);
+  box-shadow:var(--shadow-sm);
+}
+.pcard.glow::before{
+  content:none!important;
+  display:none!important;
+  animation:none!important;
+  background:none!important;
+}
+.pcard.glow.has{border-color:var(--pri)}
+
+/* Dialogs scroll internally on short screens; action rows remain in normal flow. */
+dialog{
+  max-height:min(88dvh,720px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+dialog::backdrop{
+  background:rgba(17,27,22,.48);
+  -webkit-backdrop-filter:blur(3px);
+  backdrop-filter:blur(3px);
+}
+
+/* Adaptive surfaces: keep standalone text readable over owner-selected backgrounds. */
+:where(.page-h,.empty,.hint,main>h2,main>p:not(.warnbox)){
+  color:var(--ink);
+  background:var(--surface-soft);
+  border:1px solid rgba(32,41,35,.09);
+  border-radius:var(--r-md);
+  box-shadow:var(--shadow-sm);
+  -webkit-backdrop-filter:blur(14px);
+  backdrop-filter:blur(14px);
+}
+.page-h{padding:10px 12px}
+.empty{padding:14px 16px;color:var(--mut);line-height:1.5}
+.hint{display:block;padding:10px 12px;margin:10px 0 14px;color:var(--mut);line-height:1.55}
+main>h2{padding:10px 12px;margin:18px 0 8px}
+main>p:not(.warnbox){padding:10px 12px;line-height:1.55}
+
+/* Form labels stay transparent; controls retain their own white surface. */
+main>form label{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  padding:0!important;
+  color:var(--mut);
+}
+main>form label .input,
+main>form label input,
+main>form label select,
+main>form label textarea{background:#fff}
+
+/* Avoid nested empty-state cards inside existing surfaces. */
+.panel .empty,.item .empty,.stat .empty,.cart .empty{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+.catalog #grid>.empty{
+  background:rgba(255,255,255,.96)!important;
+  color:var(--ink)!important;
+  border:1px solid rgba(32,41,35,.12);
+  border-radius:16px;
+  box-shadow:var(--shadow-md);
+}
+
+/* Toasts sit above the mobile cart bar instead of competing with it. */
+@media(max-width:899px){
+  #toasts{bottom:calc(var(--nav-h) + 76px + env(safe-area-inset-bottom))}
+}
+html.ls #toasts{bottom:calc(76px + env(safe-area-inset-bottom))}
+#toasts .toast{max-width:min(92vw,420px);border-radius:var(--r-md);box-shadow:var(--shadow-lg)}
+
+/* Consistent focus treatment without overriding each component's layout. */
+.input:focus-visible,.btn:focus-visible,.pcard:focus-visible,
+.chips button:focus-visible,.nav a:focus-visible{
+  outline:2px solid var(--pri);
+  outline-offset:2px;
+  box-shadow:0 0 0 3px var(--focus-ring);
+}
+.btn:not(:disabled):active,.chips button:active{transform:scale(.985)}
+
+@media(orientation:landscape) and (max-height:600px){
+  dialog{max-height:96dvh}
+}
+@media(prefers-reduced-motion:reduce){
+  .btn,.input,.pcard,.item,.panel,.stat,.menu a,.fonts button,.chips button,.nav a{
+    transition:none!important;
+    animation:none!important;
+  }
+}
