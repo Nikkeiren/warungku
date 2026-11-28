@@ -18,15 +18,29 @@ export const payload = t => ({ id: t.id, no: t.no, at: new Date(t.at).toISOStrin
 export async function pull() {
   if (!isProd()) return; const b = ctx.business.id;
   const ps = await sb.select('products', 'select=*&business_id=eq.' + b);
+  const localTx = await all('transactions'), historyKey = 'warungku.history.' + b;
+  const fullHistory = !localStorage.getItem(historyKey) || localTx.length === 0;
   const ts = [];
-  for (let offset = 0; ; offset += 500) {
-    const batch = await sb.select('transactions', `select=*,transaction_items(*)&business_id=eq.${b}&order=at.desc&limit=500&offset=${offset}`);
-    ts.push(...batch);
-    if (batch.length < 500) break;
+  if (fullHistory) {
+    for (let offset = 0; ; offset += 500) {
+      const batch = await sb.select('transactions', `select=*,transaction_items(*)&business_id=eq.${b}&order=at.desc&limit=500&offset=${offset}`);
+      ts.push(...batch);
+      if (batch.length < 500) break;
+    }
+  } else {
+    const latest = Math.max(...localTx.map(t => t.at || 0));
+    const overlap = 30 * 24 * 60 * 60 * 1000;
+    const since = new Date(Math.min(latest - overlap, Date.now() - overlap)).toISOString();
+    for (let offset = 0; ; offset += 500) {
+      const batch = await sb.select('transactions', `select=*,transaction_items(*)&business_id=eq.${b}&at=gte.${encodeURIComponent(since)}&order=at.desc&limit=500&offset=${offset}`);
+      ts.push(...batch);
+      if (batch.length < 500) break;
+    }
   }
-  const ids = new Set(ps.map(p => p.id)), lt = new Map((await all('transactions')).map(t => [t.id, t]));
+  const ids = new Set(ps.map(p => p.id)), lt = new Map(localTx.map(t => [t.id, t]));
   await Promise.all([...ps.map(p => put('products', p)), ...(await all('products')).filter(p => !ids.has(p.id)).map(p => del('products', p.id)),
     ...ts.filter(t => lt.get(t.id)?.sync !== 'menunggu').map(t => put('transactions', toLocal(t)))]);
+  if (fullHistory) localStorage.setItem(historyKey, '1');
 }
 // Kirim antrean transaksi. Server idempoten (id UUID): kirim ulang tidak membuat transaksi ganda.
 export async function flush() {
