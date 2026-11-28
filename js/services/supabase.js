@@ -18,8 +18,9 @@ const setSess = d => save({ access_token: d.access_token, refresh_token: d.refre
 async function refresh() { try { setSess(await call('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: sess.refresh_token }, auth: false })); } catch (e) { if (!e.offline) save(null); throw e; } }
 export const signIn = async (email, password) => setSess(await call('/auth/v1/token?grant_type=password', { method: 'POST', body: { email, password }, auth: false }));
 export async function signUp(email, password) { const d = await call('/auth/v1/signup', { method: 'POST', body: { email, password }, auth: false }); if (d?.access_token) setSess(d); return d; }
-export const signOut = () => { save(null); localStorage.removeItem('warungku.ctx'); };
+export const signOut = () => { save(null); localStorage.removeItem('warungku.ctx'); localStorage.removeItem('warungku.active'); };
 export const rpc = (fn, args) => call('/rest/v1/rpc/' + fn, { method: 'POST', body: args });
+export const myMemberships = () => rpc('get_my_memberships', {});
 export const select = (t, q = '') => call(`/rest/v1/${t}?${q}`);
 export const upsert = (t, rows) => call('/rest/v1/' + t, { method: 'POST', body: rows, headers: { Prefer: 'resolution=merge-duplicates,return=minimal' } });
 export const patch = (t, q, body) => call(`/rest/v1/${t}?${q}`, { method: 'PATCH', body, headers: { Prefer: 'return=minimal' } });
