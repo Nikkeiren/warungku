@@ -6,7 +6,7 @@ import { applyGlow } from '../utils/glow.js';
 import { rp, toInt, calc } from '../utils/money.js';
 import { $, esc, toast, icon, share } from '../utils/dom.js';
 
-export const receiptText = t => [bizName() + (t.demo ? ' (DEMO)' : ''), t.no, new Date(t.at).toLocaleString('id-ID'),
+export const receiptText = t => [bizName() + (t.demo ? ' (DEMO)' : ''), t.no, new Date(t.at).toLocaleString('id-ID'), t.customerName ? 'Pembeli: ' + t.customerName : 'Pembeli: Umum',
   t.status !== 'selesai' ? 'STATUS: ' + t.status.toUpperCase() : null, '',
   ...t.items.map(i => `${i.name}\n  ${i.qty} x ${rp(i.price)} = ${rp(i.qty * i.price)}`), '',
   `Subtotal  ${rp(t.subtotal)}`, t.discount ? `Diskon    -${rp(t.discount)}` : null, t.tax ? `Pajak     ${rp(t.tax)}` : null, t.fee ? `Layanan   ${rp(t.fee)}` : null,
@@ -26,7 +26,8 @@ export async function render(root) {
   <div class="chips" id="cats"></div><div class="grid" id="grid"></div></div>
   <aside class="cart" id="cart"><div class="cart-h"><h2>Keranjang</h2><button class="btn sm" data-a="close">Tutup</button></div>
   <div id="lines"></div>
-  <label>Nama pembeli<input id="customer" class="input" maxlength="100" placeholder="Opsional"></label>\n  <label>Catatan pesanan<input id="note" class="input" maxlength="120"></label>
+  <label>Nama pembeli<input id="customer" class="input" maxlength="100" placeholder="Opsional"></label>
+  <label>Catatan pesanan<input id="note" class="input" maxlength="120"></label>
   <div id="sum" class="sum"></div><div class="chips" id="meth"></div>
   <div class="calc"><div class="cd"><small id="cx"></small><output id="cv">Rp0</output></div>
   <div class="quick">${CONFIG.quickCash.map(n => `<button class="btn" data-q="${n}">${rp(n)}</button>`).join('')}<button class="btn" data-q="pas">Uang pas</button></div>
