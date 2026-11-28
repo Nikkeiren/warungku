@@ -26,7 +26,7 @@ export async function render(root) {
   <div class="chips" id="cats"></div><div class="grid" id="grid"></div></div>
   <aside class="cart" id="cart"><div class="cart-h"><h2>Keranjang</h2><button class="btn sm" data-a="close">Tutup</button></div>
   <div id="lines"></div>
-  <label>Catatan pesanan<input id="note" class="input" maxlength="120"></label>
+  <label>Nama pembeli<input id="customer" class="input" maxlength="100" placeholder="Opsional"></label>\n  <label>Catatan pesanan<input id="note" class="input" maxlength="120"></label>
   <div id="sum" class="sum"></div><div class="chips" id="meth"></div>
   <div class="calc"><div class="cd"><small id="cx"></small><output id="cv">Rp0</output></div>
   <div class="quick">${CONFIG.quickCash.map(n => `<button class="btn" data-q="${n}">${rp(n)}</button>`).join('')}<button class="btn" data-q="pas">Uang pas</button></div>
@@ -116,10 +116,10 @@ export async function render(root) {
     const trx = { id: draft, no: `WRG-${ymd}-${draft.slice(0, 6).toUpperCase()}`, at: Date.now(),
       items: [...cart.values()].map(l => ({ productId: l.p.id, name: l.p.name, price: l.p.price, cost: l.p.cost, qty: l.qty, unit: l.p.unit })),
       subtotal: t.sub, discount: t.d, tax: t.tax, fee: t.fee, total: t.total, method, paid: recv, change: recv - t.total,
-      note: $('#note').value.trim(), status: 'selesai', demo: !isProd(), synced: false, sync: isProd() ? 'menunggu' : 'lokal' };
+      customerName: $('#customer').value.trim(), note: $('#note').value.trim(), status: 'selesai', demo: !isProd(), synced: false, sync: isProd() ? 'menunggu' : 'lokal' };
     try {
       await saveSale(trx);
-      cart.clear(); disc = 0; expr = ''; draft = uid(); $('#note').value = '';
+      cart.clear(); disc = 0; expr = ''; draft = uid(); $('#customer').value = ''; $('#note').value = '';
       await load(); drawChips(); drawGrid(); await closeCart(); dispatchEvent(new Event('wk:changed')); dispatchEvent(new Event('wk:sale'));
       dlg.innerHTML = `<h3>Pembayaran berhasil</h3><pre class="rc">${esc(receiptText(trx))}</pre><small>${isProd() ? 'Tersimpan di perangkat, menunggu sinkronisasi ke server.' : 'Mode demo: tidak dikirim ke server.'}</small>
         <div class="rc-a"><button class="btn" id="rp">Cetak</button><button class="btn" id="rs">Bagikan</button><button class="btn primary" id="rx">Transaksi baru</button></div>`;
