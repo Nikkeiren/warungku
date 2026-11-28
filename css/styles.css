@@ -1,4 +1,4 @@
-:root{--bg:#F5F3EC;--s:#FFFFFF;--ink:#202923;--mut:#5F6B63;--line:#E2DFD3;--pri:#145C45;--sec:#A8BDAE;--pri2:#DDE7E0;--gold:#D6A84B;--warn:#8A5A00;--bad:#B42318;--r:14px;--nav-h:64px;--fs-xs:12px;--fs-sm:14px;--fs-md:16px;--fs-lg:18px;--fs-xl:20px;--fs-2xl:24px;--fs-3xl:32px;--sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--r-sm:10px;--r-md:12px;--r-lg:14px;--r-pill:99px;--tap:44px;--ctl:48px;--ic:22px;--top-h:60px;--top-h-banner:72px;--sb-w:176px;--page-max:1200px}
+:root{--bg:#F4F2EC;--s:#FFFFFF;--ink:#202923;--mut:#626B65;--line:#E4E0D6;--pri:#315F52;--sec:#AFC4B8;--pri2:#E5EEE8;--gold:#C69A45;--warn:#8A5A00;--bad:#B42318;--pri-rgb:49,95,82;--shadow-sm:0 2px 8px rgba(31,45,37,.05);--shadow-md:0 8px 24px rgba(31,45,37,.08);--shadow-lg:0 16px 40px rgba(31,45,37,.12);--r:14px;--nav-h:64px;--fs-xs:12px;--fs-sm:14px;--fs-md:16px;--fs-lg:18px;--fs-xl:20px;--fs-2xl:24px;--fs-3xl:32px;--sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--r-sm:10px;--r-md:12px;--r-lg:14px;--r-pill:99px;--tap:44px;--ctl:48px;--ic:22px;--top-h:60px;--top-h-banner:72px;--sb-w:176px;--page-max:1200px}
 *{box-sizing:border-box}[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums;padding-bottom:calc(72px + env(safe-area-inset-bottom))}
 h1,h2,h3{margin:0;letter-spacing:-.02em}h1{font-size:var(--fs-2xl)}h2{font-size:var(--fs-lg)}
@@ -137,7 +137,7 @@ img,a{-webkit-touch-callout:none;-webkit-user-drag:none}img{user-select:none}
 /* ===== Banner: topbar dan pratinjau memakai aturan yang sama ===== */
 .top{overflow:hidden}.top .brand{position:relative;z-index:1}
 .bn{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
-.top.has-banner{height:var(--top-h-banner)}.top.has-banner::after,.bnf::after{content:"";position:absolute;inset:0;background:rgba(20,92,69,.5);pointer-events:none}
+.top.has-banner{height:var(--top-h-banner)}.top.has-banner::after,.bnf::after{content:"";position:absolute;inset:0;background:rgb(var(--pri-rgb)/.58);pointer-events:none}
 .bnf{position:relative;overflow:hidden;height:var(--top-h-banner);border-radius:var(--r-md);background:var(--pri2);touch-action:none;cursor:grab;display:flex;align-items:center;padding:0 16px}
 .bnf .brand{position:relative;z-index:1;color:#fff;text-shadow:0 1px 6px #0009;font-size:var(--fs-2xl);letter-spacing:-.04em}.bnf .bn[hidden]{display:none}
 .pos5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}.pos5 .btn{padding:0 4px}
@@ -184,3 +184,63 @@ main>form label{padding:9px 10px;margin:0 0 8px;color:var(--mut)}
   background:transparent;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;
 }
 .catalog #grid>.empty{background:rgba(255,255,255,.95);color:var(--ink)}
+
+
+/* ===== Sistem visual POS: flat foundation, adaptive surfaces, restrained glass, clear feedback ===== */
+:root{
+  color-scheme:light;
+  --surface-glass:rgba(255,255,255,.88);
+  --surface-soft:rgba(255,255,255,.94);
+  --focus-ring:rgba(var(--pri-rgb),.28);
+}
+body{background:var(--bg);color:var(--ink)}
+.top{background:rgba(244,242,236,.94);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 1px 0 var(--line)}
+.brand{color:var(--pri)}
+.nav{background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);box-shadow:0 -6px 24px rgba(31,45,37,.04)}
+.nav a{transition:background .18s ease,color .18s ease}
+.nav a.on{color:var(--pri);background:var(--pri2)}
+.btn,.input,.pcard,.item,.panel,.stat,.menu a,.fonts button,.chips button{transition:border-color .18s ease,background-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.btn{box-shadow:var(--shadow-sm)}
+.btn.primary{background:var(--pri);border-color:var(--pri);box-shadow:0 4px 12px rgba(var(--pri-rgb),.18)}
+.btn.primary:hover{filter:brightness(1.05);box-shadow:0 6px 16px rgba(var(--pri-rgb),.22)}
+.btn:not(:disabled):active,.pcard:active,.chips button:active{transform:scale(.985)}
+.input{border-color:var(--line);box-shadow:inset 0 1px 2px rgba(31,45,37,.025)}
+.input:focus,.btn:focus-visible,.pcard:focus-visible,.chips button:focus-visible,:focus-visible{outline-color:var(--pri);box-shadow:0 0 0 3px var(--focus-ring)}
+.pcard,.item,.panel,.stat,.cart{box-shadow:var(--shadow-sm)}
+.pcard:hover,.item:hover{border-color:rgba(var(--pri-rgb),.38);box-shadow:var(--shadow-md)}
+.panel h2{color:var(--ink)}
+.tag{background:var(--pri2);color:var(--pri)}
+.ph{background:var(--pri2);color:var(--pri)}
+.pcard span,.chg.ok,.stats3 .rev b{color:var(--pri)}
+.keys .op{background:var(--pri2);color:var(--pri);border-color:var(--pri2)}
+.seg{background:var(--pri2)}
+.seg button.on{color:var(--pri);box-shadow:0 2px 8px rgba(31,45,37,.08)}
+.top.has-banner{box-shadow:inset 0 -1px rgba(255,255,255,.14)}
+.top.has-banner::after,.bnf::after{background:linear-gradient(90deg,rgba(18,34,29,.68),rgba(18,34,29,.28))}
+.top.has-banner .brand,.bnf .brand{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.42)}
+/* Adaptive text surfaces: hanya elemen mandiri di atas background kustom yang diberi alas */
+:where(.page-h,.empty,.hint,main>h2,main>p:not(.warnbox)){
+  background:var(--surface-soft);
+  border:1px solid rgba(32,41,35,.09);
+  box-shadow:var(--shadow-sm);
+  -webkit-backdrop-filter:blur(14px);
+  backdrop-filter:blur(14px);
+}
+main>form label{background:transparent;border:0;box-shadow:none;padding:0;color:var(--mut)}
+main>form label .input{background:#fff}
+.panel .empty,.item .empty,.stat .empty,.cart .empty{background:transparent;border:0;box-shadow:none}
+.catalog #grid>.empty{background:rgba(255,255,255,.96);box-shadow:var(--shadow-md)}
+.warnbox{border:1px solid rgba(138,90,0,.14);background:#FFF3DB}
+#toasts .toast{box-shadow:var(--shadow-lg)}
+dialog{box-shadow:var(--shadow-lg);border:1px solid rgba(32,41,35,.08)}
+dialog::backdrop{background:rgba(17,27,22,.48);backdrop-filter:blur(3px)}
+.fab{box-shadow:var(--shadow-md)}
+.cartbar{background:#26352F;box-shadow:0 8px 22px rgba(20,30,25,.2)}
+@media(hover:hover){
+  .nav a:hover:not(.on){background:rgba(var(--pri-rgb),.07);color:var(--pri)}
+  .btn:not(:disabled):hover{border-color:rgba(var(--pri-rgb),.32)}
+  .chips button:hover:not(.on){border-color:rgba(var(--pri-rgb),.38)}
+}
+@media(prefers-reduced-motion:reduce){
+  .btn,.input,.pcard,.item,.panel,.stat,.menu a,.fonts button,.chips button,.nav a{transition:none!important}
+}
