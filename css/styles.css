@@ -161,3 +161,26 @@ input,select,textarea,.input{font-size:var(--fs-md)}
 .pw-toggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:0;border-radius:10px;background:transparent;color:var(--mut);cursor:pointer}
 .pw-toggle svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .pw-toggle:focus-visible{outline:2px solid var(--pri);outline-offset:-2px}
+
+
+/* ===== Adaptive surfaces: keterbacaan teks di atas background usaha yang dapat diganti =====
+   Diterapkan pada teks yang berdiri langsung di atas background, bukan kartu/dialog yang sudah punya latar. */
+:where(.page-h,.empty,.hint,main>h2,main>p:not(.warnbox),main>form label){
+  color:var(--ink);
+  background:rgba(255,255,255,.93);
+  border:1px solid rgba(32,41,35,.10);
+  border-radius:var(--r-md);
+  -webkit-backdrop-filter:blur(12px);
+  backdrop-filter:blur(12px);
+  box-shadow:0 4px 16px rgba(20,35,27,.07);
+}
+.page-h{padding:10px 12px}
+.empty{padding:14px 16px;color:var(--mut);line-height:1.5}
+.hint{display:block;padding:10px 12px;margin:10px 0 14px;color:var(--mut);line-height:1.55}
+main>h2{padding:10px 12px;margin:18px 0 8px!important}
+main>p:not(.warnbox){padding:10px 12px;line-height:1.55}
+main>form label{padding:9px 10px;margin:0 0 8px;color:var(--mut)}
+.panel .empty,.item .empty,.stat .empty,.cart .empty{
+  background:transparent;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;
+}
+.catalog #grid>.empty{background:rgba(255,255,255,.95);color:var(--ink)}
