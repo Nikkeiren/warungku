@@ -1,16 +1,17 @@
 import * as sb from '../services/supabase.js';
-import { $, esc } from '../utils/dom.js';
+import { $, esc, bindPasswordToggles } from '../utils/dom.js';
 
 export function renderAuth(root, { onAuthed, onDemo }) {
   let mode = 'masuk', info = '';
   const draw = () => { const masuk = mode === 'masuk';
     root.innerHTML = `<div class="auth"><h1>Warungku</h1><small>Kelola Usaha, Lebih Mudah.</small>
     ${sb.configured() ? `<form id="af"><label>Email<input name="email" type="email" class="input" required autocomplete="email"></label>
-      <label>Kata sandi (minimal 8 karakter)<input name="pw" type="password" class="input" minlength="8" required autocomplete="${masuk ? 'current-password' : 'new-password'}"></label>
+      <label>Kata sandi (minimal 8 karakter)<span class="pw-wrap"><input name="pw" type="password" class="input" minlength="8" required autocomplete="${masuk ? 'current-password' : 'new-password'}"><button class="pw-toggle" type="button" data-password-toggle aria-label="Tampilkan kata sandi" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"/><circle cx="12" cy="12" r="3"/></svg></button></span></label>
       <p id="msg" class="warnbox" ${info ? '' : 'hidden'}>${esc(info)}</p><button class="btn primary lg" style="margin-top:12px">${masuk ? 'Masuk' : 'Daftar akun'}</button></form>
       <button class="btn lg" id="sw" style="margin-top:8px">${masuk ? 'Belum punya akun? Daftar' : 'Sudah punya akun? Masuk'}</button>`
       : '<p class="warnbox">Supabase belum dikonfigurasi. Isi SUPABASE_URL dan SUPABASE_ANON_KEY di env.js (lihat README).</p>'}
     <button class="btn lg" id="demo" style="margin-top:8px">Coba mode demo (data contoh)</button></div>`;
+    bindPasswordToggles(root);
     $('#demo').onclick = onDemo;
     if (!sb.configured()) return;
     $('#sw').onclick = () => { mode = masuk ? 'daftar' : 'masuk'; info = ''; draw(); };
