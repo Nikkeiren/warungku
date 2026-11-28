@@ -29,3 +29,8 @@ export const setPassword = password => call('/auth/v1/user', { method: 'PUT', bo
 export const storageUpload = (path, blob) => call('/storage/v1/object/warungku-images/' + path, { method: 'POST', body: blob, raw: true, headers: { 'Content-Type': blob.type || 'image/webp', 'x-upsert': 'false' } });
 export const storageRemove = prefixes => call('/storage/v1/object/warungku-images', { method: 'DELETE', body: { prefixes } });
 export const sign = paths => call('/storage/v1/object/sign/warungku-images', { method: 'POST', body: { expiresIn: 86400, paths } });
+
+export const listArchivedBusinesses = () => rpc('list_my_archived_businesses', {});
+export const archiveBusiness = id => rpc('archive_business', { p_business_id: id });
+export const restoreBusiness = id => rpc('restore_business', { p_business_id: id });
+export const deleteBusinessPermanently = (id, name) => rpc('delete_business_permanently', { p_business_id: id, p_confirm_name: name });
