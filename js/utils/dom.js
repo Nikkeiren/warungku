@@ -14,3 +14,22 @@ export const share = (text, title) => navigator.share ? navigator.share({ title,
 const P = { kasir: 'M3 4h2l2.4 11h10.2L20 7H6.2M9 20h.01M17 20h.01', produk: 'M3 7l9-4 9 4v10l-9 4-9-4V7zm0 0l9 4m0 0l9-4m-9 4v10',
   transaksi: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3zm3 5h6m-6 4h6', dashboard: 'M4 20V10m6 10V4m6 16v-7M2 20h20', plus: 'M12 5v14M5 12h14', lainnya: 'M5 12h.01M12 12h.01M19 12h.01', cari: 'M11 4a7 7 0 100 14 7 7 0 000-14zm9 16l-4-4', laporan: 'M6 3h9l4 4v14H6V3zm8 0v5h5M9 13h6m-6 4h6', pengeluaran: 'M3 7h18v12H3V7zm0 4h18M7 15h3', inventaris: 'M12 3l9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 16l9 5 9-5', pengaturan: 'M4 7h10m4 0h2M4 17h2m4 0h10M14 5v4M8 15v4', pengguna: 'M16 19v-1a4 4 0 00-4-4H8a4 4 0 00-4 4v1M10 11a3 3 0 100-6 3 3 0 000 6zm10 8v-1a3 3 0 00-2-2.8M15 5.2a3 3 0 010 5.6', x: 'M6 6l12 12M18 6L6 18' };
 export const icon = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n]}"/></svg>`;
+
+// Tombol tampil/sembunyikan kata sandi untuk semua formulir.
+export function bindPasswordToggles(root = document) {
+  root.querySelectorAll('[data-password-toggle]').forEach(btn => {
+    if (btn.dataset.bound === '1') return;
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', () => {
+      const input = btn.parentElement.querySelector('input');
+      if (!input) return;
+      const visible = input.type === 'password';
+      input.type = visible ? 'text' : 'password';
+      btn.setAttribute('aria-label', visible ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi');
+      btn.setAttribute('aria-pressed', String(visible));
+      btn.innerHTML = visible
+        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 5.2A10.8 10.8 0 0112 5c5 0 8.5 4.2 9.5 7-.4 1.1-1.2 2.3-2.3 3.3M6.2 6.2C3.8 7.6 2.8 10 2.5 12c.4 1.2 1.4 2.8 3.2 4.2A10.8 10.8 0 0012 19c1.1 0 2.1-.2 3-.5"/></svg>'
+        : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+    });
+  });
+}
