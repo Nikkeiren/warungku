@@ -9,15 +9,21 @@ export const settings = () => isProd() ? { taxPct: ctx.business.tax_pct, fee: ct
 export const saveCtx = () => localStorage.setItem('warungku.ctx', JSON.stringify({ business: ctx.business, role: ctx.role }));
 
 export const toLocal = t => ({ id: t.id, no: t.no, at: +new Date(t.at), subtotal: t.subtotal, discount: t.discount, tax: t.tax, fee: t.fee, total: t.total, method: t.method, paid: t.paid, change: t.change,
-  note: t.note || '', status: t.status, voidReason: t.void_reason, synced: true, sync: 'tersinkron',
+  note: t.note || '', customerName: t.customer_name || '', status: t.status, voidReason: t.void_reason, synced: true, sync: 'tersinkron',
   items: (t.transaction_items || []).map(i => ({ productId: i.product_id, name: i.name, price: i.price, cost: i.cost, qty: i.qty })) });
 export const payload = t => ({ id: t.id, no: t.no, at: new Date(t.at).toISOString(), subtotal: t.subtotal, discount: t.discount, tax: t.tax, fee: t.fee, total: t.total, method: t.method,
-  paid: t.paid, change: t.change, note: t.note || '', items: t.items.map(i => ({ product_id: i.productId, name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty })) });
+  paid: t.paid, change: t.change, note: t.note || '', customer_name: t.customerName || null, items: t.items.map(i => ({ product_id: i.productId, name: i.name, price: i.price, cost: i.cost || 0, qty: i.qty })) });
 
 // Tarik data server (sumber kebenaran) ke cache lokal.
 export async function pull() {
   if (!isProd()) return; const b = ctx.business.id;
-  const [ps, ts] = await Promise.all([sb.select('products', 'select=*&business_id=eq.' + b), sb.select('transactions', `select=*,transaction_items(*)&business_id=eq.${b}&order=at.desc&limit=500`)]);
+  const ps = await sb.select('products', 'select=*&business_id=eq.' + b);
+  const ts = [];
+  for (let offset = 0; ; offset += 500) {
+    const batch = await sb.select('transactions', `select=*,transaction_items(*)&business_id=eq.${b}&order=at.desc&limit=500&offset=${offset}`);
+    ts.push(...batch);
+    if (batch.length < 500) break;
+  }
   const ids = new Set(ps.map(p => p.id)), lt = new Map((await all('transactions')).map(t => [t.id, t]));
   await Promise.all([...ps.map(p => put('products', p)), ...(await all('products')).filter(p => !ids.has(p.id)).map(p => del('products', p.id)),
     ...ts.filter(t => lt.get(t.id)?.sync !== 'menunggu').map(t => put('transactions', toLocal(t)))]);
